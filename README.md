@@ -4,6 +4,7 @@ We use [DDEV](https://ddev.com/) and [Task](https://taskfile.dev/) for developme
 
 ``` shell
 task site:install
+```
 
 ``` shell
 task site:update
@@ -11,6 +12,44 @@ ddev launch
 ```
 
 Run `task` to see what cool task are available. Running `ddev` can help with other stuff.
+
+## Adapter
+
+Takes an Aarhus open-data set, converts it to [NGSI-LD], and upserts it into the
+context broker.
+
+``` text
+source feed (JSON)
+  → SourceInterface implementation   maps fields, fixes quirks, picks the data model
+    → NgsiEntity                     normalized NGSI-LD: Property / GeoProperty / Relationship
+      → NgsiLdBroker                 POST /ngsi-ld/v1/entityOperations/upsert
+        → context broker
+```
+
+| Class                              | Responsibility                                   |
+| ---------------------------------- | ------------------------------------------------ |
+| `App\Source\SourceInterface`       | Contract for one input data set                  |
+| `App\Source\HandicapParkingSource` | Disabled parking bays → `OnStreetParking`        |
+| `App\Source\FeedReader`            | Path or URL → decoded JSON                       |
+| `App\Geo\Wgs84Transformer`         | Any registered CRS → WGS84, any GeoJSON geometry |
+| `App\Ngsi\NgsiEntity`              | Builds normalized NGSI-LD entities               |
+| `App\Broker\NgsiLdBroker`          | Batch upsert to the broker                       |
+| `App\Command\ImportCommand`        | `app:import`                                     |
+
+``` shell
+task import                                                # list the available sources
+task import -- MTM-handicap-parking                        # import one
+task import -- MTM-handicap-parking --dry-run --limit 5    # print the payload instead
+task broker:entities -- OnStreetParking 10                 # read back what landed
+```
+
+Adding a data set means adding one `SourceInterface` implementation. It is
+discovered through `#[AutoconfigureTag('app.source')]` and shows up as an
+`app:import` argument with no further wiring.
+
+Design decisions are recorded in [docs/adr](docs/adr/README.md).
+
+[NGSI-LD]: https://www.etsi.org/committee/cim
 
 ## Broker
 
