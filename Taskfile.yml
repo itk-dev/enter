@@ -1,57 +1,107 @@
+# https://taskfile.dev — install with `brew install go-task`.
+# Run `task` (or `task --list-all`) to see all available commands.
+
 version: '3'
 
 # https://taskfile.dev/usage/#env-files
 dotenv: ['.env.local', '.env']
 
+vars:
+  # Set TASK_DOCKER_COMPOSE=docker compose to bypass the itk-dev wrapper.
+  DOCKER_COMPOSE: '{{.TASK_DOCKER_COMPOSE | default "itkdev-docker-compose"}}'
+
 tasks:
+  # ---------------------------------------------------------------- Site ---
+
   site:install:
     desc: Install site from scratch
-    prompt: Really (re)install site?
+    prompt: Really (re)install site? This deletes the broker database.
     cmds:
-      - ddev delete --omit-snapshot --yes
-      - rm -fr .ddev/data/scorpio-db/
+      - task: compose
+        vars:
+          TASK_ARGS: down --volumes --remove-orphans
+      - rm -fr .docker/data/scorpio-db/
       - task: site:update
 
   site:update:
     desc: Update site
     cmds:
-      - ddev restart
-      - ddev composer install
-      # - ddev console doctrine:migrations:migrate --no-interaction
-      - ddev console cache:clear
+      - task: traefik:start
+      - task: compose
+        vars:
+          TASK_ARGS: pull
+      - task: compose
+        vars:
+          TASK_ARGS: up --detach --remove-orphans
+      - task: composer
+        vars:
+          TASK_ARGS: install
+      - task: console
+        vars:
+          TASK_ARGS: cache:clear
+
+  site:open:
+    desc: Open the site in a browser
+    cmd: '{{.DOCKER_COMPOSE}} open'
+
+  traefik:start:
+    desc: Start the shared Traefik reverse proxy
+    # Traefik is a stack of its own. Without unsetting COMPOSE_PROJECT_NAME —
+    # which the dotenv block above exports — it would be brought up under this
+    # project's name and get its own proxy network instead of joining the
+    # shared one.
+    cmd: env -u COMPOSE_PROJECT_NAME itkdev-docker-compose traefik:start
+
+  # ----------------------------------------------------------- Wrappers ---
+
+  compose:
+    desc: 'Run a docker compose command, e.g. task compose -- logs --follow'
+    cmd: '{{.DOCKER_COMPOSE}} {{.TASK_ARGS}} {{.CLI_ARGS}}'
+
+  composer:
+    desc: 'Run composer, e.g. task composer -- require symfony/uid'
+    cmd: '{{.DOCKER_COMPOSE}} run --rm --no-deps phpfpm composer {{.TASK_ARGS}} {{.CLI_ARGS}}'
+
+  php:
+    desc: 'Run a command in a one-off phpfpm container, e.g. task php -- vendor/bin/phpstan'
+    cmd: '{{.DOCKER_COMPOSE}} run --rm --no-deps phpfpm {{.TASK_ARGS}} {{.CLI_ARGS}}'
+
+  console:
+    desc: 'Run a Symfony console command, e.g. task console -- debug:router'
+    cmd: '{{.DOCKER_COMPOSE}} exec phpfpm bin/console {{.TASK_ARGS}} {{.CLI_ARGS}}'
+
+  shell:
+    desc: Open a shell in the running phpfpm container
+    cmd: '{{.DOCKER_COMPOSE}} exec phpfpm bash'
+
+  # -------------------------------------------------------------- Tests ---
 
   test:
-    desc: Run all tests
-    cmds:
-      - task: test:unit
-      # - task: test:application
-      # - task: test:integration
-
-  test:unit: &test_task
+    desc: 'Run the test suite, e.g. task test -- --filter=FeedReader'
     env:
       APP_ENV: test
-    desc: 'Run all {{.TASK | replace "test:" "" }} tests'
-    cmd: ddev php bin/phpunit tests/{{.TASK | replace "test:" "" | title }}
+    cmd: '{{.DOCKER_COMPOSE}} run --rm --no-deps phpfpm bin/phpunit {{.CLI_ARGS}}'
 
-  test:integration: *test_task
-  test:application: *test_task
+  # ------------------------------------------------------------- Broker ---
 
+  # Scorpio comes up with the rest of the stack (docker-compose.override.yml),
+  # so there is no separate start task. Read requests need the domain context
+  # in a Link header, which the script supplies; the env values come from the
+  # dotenv block above and are passed into the container explicitly because it
+  # does not read .env itself.
   import:
     desc: 'Import a source into the broker, e.g. task import -- mtm_spatialmaps-handicap-parking'
-    cmd: ddev console app:import {{.CLI_ARGS}}
+    cmd: '{{.DOCKER_COMPOSE}} exec phpfpm bin/console app:import {{.CLI_ARGS}}'
 
-  # The broker itself needs no start task: Scorpio is a DDEV custom service
-  # (.ddev/docker-compose.scorpio.yaml), so it comes up with the rest of the
-  # site. Read requests need the domain context in a Link header, which the
-  # script supplies; the env values come from the dotenv block above, and are
-  # passed in explicitly because the container shell does not read .env.
   broker:entities:
     desc: 'List broker entities of a type, e.g. task broker:entities -- OnStreetParking 10'
     cmd: >-
-      ddev exec sh -c
-      "APP_BROKER_BASE_URI='$APP_BROKER_BASE_URI'
-      ENTER_NGSI_DOMAIN_CONTEXT='$ENTER_NGSI_DOMAIN_CONTEXT'
-      sh task/scripts/broker-entities {{.CLI_ARGS}}"
+      {{.DOCKER_COMPOSE}} exec
+      --env APP_BROKER_BASE_URI="$APP_BROKER_BASE_URI"
+      --env ENTER_NGSI_DOMAIN_CONTEXT="$ENTER_NGSI_DOMAIN_CONTEXT"
+      phpfpm sh task/scripts/broker-entities {{.CLI_ARGS}}
+
+  # ---------------------------------------------------- Coding standards ---
 
   coding-standards:apply:
     desc: 'Apply coding standards'
@@ -64,7 +114,7 @@ tasks:
       - task: coding-standards:yaml:apply
 
   coding-standards:check:
-    desc: 'Apply coding standards'
+    desc: 'Apply and check coding standards'
     cmds:
       - task: coding-standards:assets:check
       - task: coding-standards:composer:check
@@ -127,26 +177,38 @@ tasks:
   coding-standards:php:apply:
     desc: 'Apply coding standards for PHP'
     cmds:
-      - ddev php vendor/bin/rector
-      - ddev php vendor/bin/php-cs-fixer fix
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/rector
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/php-cs-fixer fix
 
   coding-standards:php:check:
     desc: 'Apply and check coding standards for PHP'
     cmds:
       - task: coding-standards:php:apply
-      - ddev php vendor/bin/rector --dry-run
-      - ddev php vendor/bin/php-cs-fixer check
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/rector --dry-run
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/php-cs-fixer check
 
   coding-standards:twig:apply:
     desc: 'Apply coding standards for Twig'
-    cmds:
-      - ddev php vendor/bin/twig-cs-fixer fix
+    cmd:
+      task: php
+      vars:
+        TASK_ARGS: vendor/bin/twig-cs-fixer fix
 
   coding-standards:twig:check:
     desc: 'Apply and check coding standards for Twig'
     cmds:
       - task: coding-standards:twig:apply
-      - ddev php vendor/bin/twig-cs-fixer check
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/twig-cs-fixer check
 
   coding-standards:yaml:apply:
     desc: 'Apply coding standards for YAML'
@@ -163,31 +225,22 @@ tasks:
         vars:
           TASK_ARGS: run --rm prettier --parser yaml phpstan*.neon '**/*.{yml,yaml}' --check
 
+  # ------------------------------------------------------ Code analysis ---
+
   code-analysis:
     desc: 'Run code analysis'
     cmds:
       - task: code-analysis:phpstan
-      - task: code-analysis:mago
 
   code-analysis:phpstan:
     desc: 'Run PHPStan'
     cmds:
-      - task: compose
+      - task: composer
         vars:
-          TASK_ARGS: run --rm --no-deps phpfpm composer install --no-scripts
-      - task: compose
+          TASK_ARGS: install --no-scripts
+      - task: php
         vars:
-          TASK_ARGS: run --rm --no-deps phpfpm vendor/bin/phpstan
-
-  compose:
-    internal: true
-    cmd: 'docker compose {{.TASK_ARGS}} {{.CLI_ARGS}}'
-
-  composer:
-    internal: true
-    task: compose
-    vars:
-      TASK_ARGS: run --rm --no-deps phpfpm composer
+          TASK_ARGS: vendor/bin/phpstan
 
   default:
     cmds:
