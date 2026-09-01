@@ -36,6 +36,23 @@ tasks:
   test:integration: *test_task
   test:application: *test_task
 
+  import:
+    desc: 'Import a source into the broker, e.g. task import -- MTM-handicap-parking'
+    cmd: ddev console app:import {{.CLI_ARGS}}
+
+  # The broker itself needs no start task: Scorpio is a DDEV custom service
+  # (.ddev/docker-compose.scorpio.yaml), so it comes up with the rest of the
+  # site. Read requests need the domain context in a Link header, which the
+  # script supplies; the env values come from the dotenv block above, and are
+  # passed in explicitly because the container shell does not read .env.
+  broker:entities:
+    desc: 'List broker entities of a type, e.g. task broker:entities -- OnStreetParking 10'
+    cmd: >-
+      ddev exec sh -c
+      "APP_BROKER_BASE_URI='$APP_BROKER_BASE_URI'
+      ENTER_NGSI_DOMAIN_CONTEXT='$ENTER_NGSI_DOMAIN_CONTEXT'
+      sh task/scripts/broker-entities {{.CLI_ARGS}}"
+
   coding-standards:apply:
     desc: 'Apply coding standards'
     cmds:
