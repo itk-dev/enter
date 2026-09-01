@@ -26,20 +26,20 @@ source feed (JSON)
         → context broker
 ```
 
-| Class                              | Responsibility                                   |
-| ---------------------------------- | ------------------------------------------------ |
-| `App\Source\SourceInterface`       | Contract for one input data set                  |
-| `App\Source\HandicapParkingSource` | Disabled parking bays → `OnStreetParking`        |
-| `App\Source\FeedReader`            | Path or URL → decoded JSON                       |
-| `App\Geo\Wgs84Transformer`         | Any registered CRS → WGS84, any GeoJSON geometry |
-| `App\Ngsi\NgsiEntity`              | Builds normalized NGSI-LD entities               |
-| `App\Broker\NgsiLdBroker`          | Batch upsert to the broker                       |
-| `App\Command\ImportCommand`        | `app:import`                                     |
+| Class                                       | Responsibility                                   |
+| ------------------------------------------- | ------------------------------------------------ |
+| `App\Source\SourceInterface`                | Contract for one input data set                  |
+| `App\Source\FeedReader`                     | Feed URL → decoded JSON                          |
+| `App\Source\MtmSpatialMaps\HandicapParking` | Disabled parking bays → `OnStreetParking`        |
+| `App\Geo\Wgs84Transformer`                  | Any registered CRS → WGS84, any GeoJSON geometry |
+| `App\Ngsi\NgsiEntity`                       | Builds normalized NGSI-LD entities               |
+| `App\Broker\NgsiLdBroker`                   | Batch upsert to the broker                       |
+| `App\Command\ImportCommand`                 | `app:import`                                     |
 
 ``` shell
 task import                                                # list the available sources
-task import -- MTM-handicap-parking                        # import one
-task import -- MTM-handicap-parking --dry-run --limit 5    # print the payload instead
+task import -- mtm_spatialmaps-handicap-parking                        # import one
+task import -- mtm_spatialmaps-handicap-parking --dry-run --limit 5    # print the payload instead
 task broker:entities -- OnStreetParking 10                 # read back what landed
 ```
 

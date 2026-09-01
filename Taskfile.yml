@@ -37,7 +37,7 @@ tasks:
   test:application: *test_task
 
   import:
-    desc: 'Import a source into the broker, e.g. task import -- MTM-handicap-parking'
+    desc: 'Import a source into the broker, e.g. task import -- mtm_spatialmaps-handicap-parking'
     cmd: ddev console app:import {{.CLI_ARGS}}
 
   # The broker itself needs no start task: Scorpio is a DDEV custom service
