@@ -16,7 +16,7 @@ class FeedReaderTest extends TestCase
      * properties, because nothing this class does depends on what the feed
      * contains — only on the envelope surviving.
      */
-    private const FEATURE_COLLECTION = '{"type":"FeatureCollection","features":[{"example":1},{"example":2}]}';
+    private const string FEATURE_COLLECTION = '{"type":"FeatureCollection","features":[{"example":1},{"example":2}]}';
 
     private function reader(?MockHttpClient $client = null): FeedReader
     {

@@ -15,7 +15,7 @@ use proj4php\Proj4php;
  */
 final class Wgs84Transformer
 {
-    public const TARGET_SRID = 'EPSG:4326';
+    public const string TARGET_SRID = 'EPSG:4326';
 
     /**
      * PROJ definitions for coordinate systems this application reads.
@@ -26,7 +26,7 @@ final class Wgs84Transformer
      *
      * @var array<string, string>
      */
-    private const DEFINITIONS = [
+    private const array DEFINITIONS = [
         // ETRS89 / UTM zone 32N — most of Denmark.
         'EPSG:25832' => '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
         // ETRS89 / UTM zone 33N — Bornholm and eastwards.

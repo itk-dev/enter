@@ -29,11 +29,11 @@ class ImportCommandTest extends TestCase
 
     private function source(string $key, NgsiEntity ...$entities): SourceInterface
     {
-        return new class($key, $entities) implements SourceInterface {
+        return new readonly class($key, $entities) implements SourceInterface {
             /** @param list<NgsiEntity> $entities */
             public function __construct(
-                private readonly string $key,
-                private readonly array $entities,
+                private string $key,
+                private array $entities,
             ) {
             }
 
@@ -120,7 +120,7 @@ class ImportCommandTest extends TestCase
 
     public function testDryRunPrintsThePayloadAndSendsNothing(): void
     {
-        $entity = (new NgsiEntity('urn:ngsi-ld:Example:1', 'Example'))
+        $entity = new NgsiEntity('urn:ngsi-ld:Example:1', 'Example')
             ->property('name', 'Example');
 
         $tester = $this->tester([$this->source('one-entity', $entity)]);

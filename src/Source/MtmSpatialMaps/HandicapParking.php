@@ -21,18 +21,18 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  *
  * @see https://github.com/smart-data-models/dataModel.Parking/tree/master/OnStreetParking
  */
-final class HandicapParking implements SourceInterface
+final readonly class HandicapParking implements SourceInterface
 {
     /**
      * The CRS(coordinate reference system) this feed publishes - SRID (Spatial reference identifier).
      */
-    private const SOURCE_SRID = 'EPSG:25832';
+    private const string SOURCE_SRID = 'EPSG:25832';
 
     public function __construct(
-        private readonly FeedReader $reader,
-        private readonly Wgs84Transformer $transformer,
+        private FeedReader $reader,
+        private Wgs84Transformer $transformer,
         #[Autowire(env: 'ENTER_MTM_SPATIALMAPS_HANDICAP_PARKING_SOURCE')]
-        private readonly string $location,
+        private string $location,
     ) {
     }
 

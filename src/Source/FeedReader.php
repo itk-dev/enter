@@ -9,10 +9,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 /**
  * Fetches a feed over HTTP and decodes it.
  */
-final class FeedReader
+final readonly class FeedReader
 {
     public function __construct(
-        private readonly HttpClientInterface $client,
+        private HttpClientInterface $client,
     ) {
     }
 

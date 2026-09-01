@@ -6,7 +6,6 @@ namespace App\Command;
 
 use App\Broker\NgsiLdBroker;
 use App\Source\SourceInterface;
-use MongoDB\Driver\Command;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -153,6 +152,6 @@ final class ImportCommand extends Command
      */
     private function contexts(): array
     {
-        return array_values(array_filter(array_map('trim', explode(',', $this->contextUrls))));
+        return array_values(array_filter(array_map(trim(...), explode(',', $this->contextUrls))));
     }
 }

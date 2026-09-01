@@ -15,21 +15,21 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * import idempotent, which matters because the entity ids are derived from
  * the source's own primary key.
  */
-final class NgsiLdBroker
+final readonly class NgsiLdBroker
 {
-    private const UPSERT_PATH = '/ngsi-ld/v1/entityOperations/upsert';
+    private const string UPSERT_PATH = '/ngsi-ld/v1/entityOperations/upsert';
 
     /**
      * The payload carries its own @context, so it must be sent as
      * application/ld+json. Sending application/json instead requires the
      * context in a Link header, and brokers reject the mismatch.
      */
-    private const CONTENT_TYPE = 'application/ld+json';
+    private const string CONTENT_TYPE = 'application/ld+json';
 
     public function __construct(
-        private readonly HttpClientInterface $client,
+        private HttpClientInterface $client,
         #[Autowire(env: 'APP_BROKER_BASE_URI')]
-        private readonly string $brokerUrl,
+        private string $brokerUrl,
     ) {
     }
 

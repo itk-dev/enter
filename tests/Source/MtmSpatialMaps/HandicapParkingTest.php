@@ -12,7 +12,7 @@ use Symfony\Component\HttpClient\MockHttpClient;
 
 class HandicapParkingTest extends TestCase
 {
-    private const PARKING_SITE_URN = 'urn:ngsi-ld:ParkingSite:aarhus-on-street';
+    private const string PARKING_SITE_URN = 'urn:ngsi-ld:ParkingSite:aarhus-on-street';
 
     /** @var list<array<string, mixed>> */
     private array $entities;

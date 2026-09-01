@@ -9,15 +9,15 @@ use PHPUnit\Framework\TestCase;
 
 class Wgs84TransformerTest extends TestCase
 {
-    private const UTM32 = 'EPSG:25832';
+    private const string UTM32 = 'EPSG:25832';
 
     /**
      * Reference coordinates for a building on the Aarhus harbourfront, known
      * independently to sit at roughly 56.1592 N, 10.2152 E. This is the
      * ground truth that catches a broken or missing CRS definition.
      */
-    private const REFERENCE_EASTING = 575477.5441628407;
-    private const REFERENCE_NORTHING = 6224460.129141892;
+    private const float REFERENCE_EASTING = 575477.5441628407;
+    private const float REFERENCE_NORTHING = 6224460.129141892;
 
     private Wgs84Transformer $transformer;
 
