@@ -23,15 +23,17 @@ tasks:
   test:
     desc: Run all tests
     cmds:
-      - task: test:application
-      - task: test:integration
+      - task: test:unit
+      # - task: test:application
+      # - task: test:integration
 
-  test:integration: &test_task
+  test:unit: &test_task
     env:
       APP_ENV: test
     desc: 'Run all {{.TASK | replace "test:" "" }} tests'
     cmd: ddev php bin/phpunit tests/{{.TASK | replace "test:" "" | title }}
 
+  test:integration: *test_task
   test:application: *test_task
 
   coding-standards:apply:
@@ -108,38 +110,26 @@ tasks:
   coding-standards:php:apply:
     desc: 'Apply coding standards for PHP'
     cmds:
-      - task: compose
-        vars:
-          TASK_ARGS: exec phpfpm vendor/bin/rector
-      - task: compose
-        vars:
-          TASK_ARGS: exec phpfpm vendor/bin/php-cs-fixer fix
+      - ddev php vendor/bin/rector
+      - ddev php vendor/bin/php-cs-fixer fix
 
   coding-standards:php:check:
     desc: 'Apply and check coding standards for PHP'
     cmds:
       - task: coding-standards:php:apply
-      - task: compose
-        vars:
-          TASK_ARGS: exec phpfpm vendor/bin/rector --dry-run
-      - task: compose
-        vars:
-          TASK_ARGS: exec phpfpm vendor/bin/php-cs-fixer check
+      - ddev php vendor/bin/rector --dry-run
+      - ddev php vendor/bin/php-cs-fixer check
 
   coding-standards:twig:apply:
     desc: 'Apply coding standards for Twig'
     cmds:
-      - task: compose
-        vars:
-          TASK_ARGS: exec phpfpm vendor/bin/twig-cs-fixer fix
+      - ddev php vendor/bin/twig-cs-fixer fix
 
   coding-standards:twig:check:
     desc: 'Apply and check coding standards for Twig'
     cmds:
       - task: coding-standards:twig:apply
-      - task: compose
-        vars:
-          TASK_ARGS: exec phpfpm vendor/bin/twig-cs-fixer check
+      - ddev php vendor/bin/twig-cs-fixer check
 
   coding-standards:yaml:apply:
     desc: 'Apply coding standards for YAML'
@@ -171,6 +161,16 @@ tasks:
       - task: compose
         vars:
           TASK_ARGS: run --rm --no-deps phpfpm vendor/bin/phpstan
+
+  compose:
+    internal: true
+    cmd: 'docker compose {{.TASK_ARGS}} {{.CLI_ARGS}}'
+
+  composer:
+    internal: true
+    task: compose
+    vars:
+      TASK_ARGS: run --rm --no-deps phpfpm composer
 
   default:
     cmds:

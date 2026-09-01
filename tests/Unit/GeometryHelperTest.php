@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tests;
+namespace App\Tests\Unit;
 
 use App\GeometryHelper;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +17,7 @@ class GeometryHelperTest extends TestCase
         $expected = [
             10.236808, 56.101227,
         ];
-        $actual = $helper->transformCoordinates($input[0], $input[1], GeometryHelper::EPSG_GEO_JSON, GeometryHelper::EPSG_25832);
+        $actual = $helper->transformCoordinates($input[0], $input[1], GeometryHelper\Crs::geoJson(), GeometryHelper\Crs::EPSG_25832);
         $this->assertEquals($expected, $actual);
     }
 
@@ -30,7 +30,7 @@ class GeometryHelperTest extends TestCase
         $expected = new Point(
             10.236808, 56.101227,
         );
-        $actual = $helper->transformPoint($input, GeometryHelper::EPSG_GEO_JSON, GeometryHelper::EPSG_25832);
+        $actual = $helper->transformPoint($input, GeometryHelper\Crs::geoJson(), GeometryHelper\Crs::EPSG_25832);
         $this->assertEquals($expected, $actual);
     }
 
@@ -55,7 +55,7 @@ class GeometryHelperTest extends TestCase
                 ],
             ],
         ];
-        $actual = $helper->transformGeoJsonGeometry($input, from: GeometryHelper::EPSG_25832, to: GeometryHelper::EPSG_GEO_JSON);
+        $actual = $helper->transformGeoJsonGeometry($input, from: GeometryHelper\Crs::EPSG_25832, to: GeometryHelper\Crs::EPSG_4326);
         $this->assertSame($expected, $actual);
     }
 }

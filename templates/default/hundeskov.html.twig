@@ -50,7 +50,7 @@ debug: true,
                 },
 #}
                 {
-                    "features_host": {{ path('app_data', {path: '/ngsi-ld/v1/entities', _format: 'geojson', 'type': 'hundeskov', limit: 10})|json_encode|raw}},
+                    "features_host": {{ path('app_data', {path: '/ngsi-ld/v1/entities', _format: 'geojson', type: 'hundeskov', limit: 10})|json_encode|raw }},
 
                     // "features_template": "{ 'type': 'Feature', 'properties': <%= properties %>, 'geometry': <%= _formatJSON(location) %>}",
 
@@ -75,7 +75,7 @@ debug: true,
                 },
 
                 {
-                    "features_host": {{ path('app_data', {path: '/ngsi-ld/v1/entities', _format: 'geojson', 'type': 'hundeskov', offset: 10, limit: 10})|json_encode|raw}},
+                    "features_host": {{ path('app_data', {path: '/ngsi-ld/v1/entities', _format: 'geojson', type: 'hundeskov', offset: 10, limit: 10})|json_encode|raw }},
                     // type: "json",
                     // features_dataPath: "features",
                     // features_template_row: "features",

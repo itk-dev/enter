@@ -56,7 +56,7 @@ final class GeometryHelper
     {
         $arrayIterator = new \RecursiveArrayIterator($geometry);
         $iterator = new \RecursiveIteratorIterator($arrayIterator, \RecursiveIteratorIterator::CHILD_FIRST);
-        foreach ($iterator as $key => $value) {
+        foreach ($iterator as $value) {
             if (is_array($value) && array_is_list($value) && 2 === count($value) && is_float($value[0]) && is_float($value[1])) {
                 $transformed = $this->transformCoordinates($value[0], $value[1], $to, $from);
                 // Am I stupid or is PHP stupid?

@@ -26,8 +26,8 @@ final class DataController extends AbstractController
         ],
         defaults: ['_format' => self::FORMAT_JSON],
     )]
-    public function index(Request             $request, string $path, string $_format,
-                          HttpClientInterface $brokerClient,
+    public function index(Request $request, string $path, string $_format,
+        HttpClientInterface $brokerClient,
     ): JsonResponse {
         $path = '/'.ltrim($path, '/');
         $headers = $request->headers->all();

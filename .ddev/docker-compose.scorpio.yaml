@@ -1,5 +1,5 @@
 networks:
-  scorpio:
+    scorpio:
 
 # https://docs.ddev.com/en/stable/users/extend/custom-docker-services/
 services:

@@ -2,9 +2,8 @@
 
 {% block content %}
     {% for path in ['hundeskov'] %}
-    <a href="{{  path('app_default', {path}) }}">{{  path }}</a>
-    {%  endfor %}
-
+    <a href="{{ path('app_default', {path: path}) }}">{{ path }}</a>
+    {% endfor %}
 
 <div id="map">#map</div>
 
@@ -53,11 +52,10 @@ Scorpio  complains about "Bad Request Data." and says "Georelation is not valid"
 
 <a href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')) }}">Reset</a>
 <div data-widget-url="{{ path('data_test') }}"></div>
-{#<script src="https://widget.cdn.septima.dk/3.23.0/widgetconfig.js"></script>#}
+{# <script src="https://widget.cdn.septima.dk/3.23.0/widgetconfig.js"></script> #}
 {# https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
 <script src="https://widget.cdn.septima.dk/3.19.0/widgetconfig.js"></script>
 
 https://enter.ddev.site:33001/data/ngsi-ld/v1/entities.geojson?georel=near;maxDistance==2000&geometry=Point&coordinates=[8,40]
-
 
 {% endblock %}

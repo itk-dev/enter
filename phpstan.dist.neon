@@ -15,6 +15,6 @@ parameters:
           path: src/Command/BrokerImportGeoJson.php
 
         - messages:
-                - '#contains generic class RecursiveArrayIterator but does not specify its types#'
-                - '#Call to an undefined method RecursiveIterator::getArrayCopy\(\).#'
+              - "#contains generic class RecursiveArrayIterator but does not specify its types#"
+              - '#Call to an undefined method RecursiveIterator::getArrayCopy\(\).#'
           path: src/GeometryHelper.php

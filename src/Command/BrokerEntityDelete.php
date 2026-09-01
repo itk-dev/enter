@@ -21,14 +21,13 @@ class BrokerEntityDelete
      * @param string[]|null $entityTypes
      */
     public function __invoke(
-        SymfonyStyle        $io,
+        SymfonyStyle $io,
         HttpClientInterface $brokerClient,
         #[Argument(name: 'type')]
-        ?array              $entityTypes = null,
+        ?array $entityTypes = null,
         #[Option]
-        bool                $all = false,
-    ): int
-    {
+        bool $all = false,
+    ): int {
         if ($all) {
             $data = $brokerClient->request(Request::METHOD_GET, '/ngsi-ld/v1/types')->toArray();
             $entityTypes = $data['typeList'] ?? [];
@@ -59,7 +58,7 @@ class BrokerEntityDelete
                     });
                     $io->progressStart($count);
                     foreach ($entities as $entity) {
-                        $brokerClient->request(Request::METHOD_DELETE, '/ngsi-ld/v1/entities/' . urlencode($entity['id']))
+                        $brokerClient->request(Request::METHOD_DELETE, '/ngsi-ld/v1/entities/'.urlencode($entity['id']))
                             ->getStatusCode();
                         $io->progressAdvance();
                     }
@@ -84,7 +83,7 @@ class BrokerEntityDelete
     {
         $links = $response->getHeaders()['link'] ?? [];
         foreach ($links as $link) {
-            if (preg_match_all('/<(?P<url>[^>]+)>;\s*rel="(?P<rel>[^"]+)"/', (string)$link, $matches, PREG_SET_ORDER)) {
+            if (preg_match_all('/<(?P<url>[^>]+)>;\s*rel="(?P<rel>[^"]+)"/', (string) $link, $matches, PREG_SET_ORDER)) {
                 if ($rel === ($matches[0]['rel'] ?? null)) {
                     return $matches[0]['url'] ?? null;
                 }

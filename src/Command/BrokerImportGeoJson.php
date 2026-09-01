@@ -31,9 +31,6 @@ class BrokerImportGeoJson
         #[Argument()]
         string $dataUrl,
     ): int {
-        //        $entityType = 'toilet';
-        //        // https://www.opendata.dk/city-of-aarhus/toiletter-i-aarhus-kommune
-        //        $dataUrl = 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter';
         $data = $httpClient->request(Request::METHOD_GET, $dataUrl)->toArray();
         $features = $data['features'] ?? null;
         $sourceProjection = $data['crs']['properties']['name'] ?? null;
@@ -53,11 +50,6 @@ class BrokerImportGeoJson
                     'type' => $entityType,
                     'id' => sprintf('%s:%04d', $entityType, $index),
                 ];
-//                foreach (['geometry'] as $key) {
-//                    if (array_key_exists($key, $feature)) {
-//                        $entity[self::RESERVED_PROPERTY_NAME_PREFIX.$key] = $feature[$key];
-//                    }
-//                }
                 foreach ($feature['properties'] as $name => $value) {
                     if (null === $value) {
                         continue;

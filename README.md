@@ -10,6 +10,8 @@ task site:update
 ddev launch
 ```
 
+Run `task` to see what cool task are available. Running `ddev` can help with other stuff.
+
 ## Broker
 
 A [Scorpio Broker](https://scorpio.readthedocs.io/) is part of the development setup.
@@ -37,7 +39,6 @@ ddev console app:broker:entity:delete hundeskov
 ddev console app:broker:import:geojson hundeskov 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=hundeskove_friluftsliv_aarhus'
 ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/entities --get --data-urlencode type=hundeskov" | jq '.[]|with_entries(select([.key] | inside(["id", "type", "location", "geometry"])))'
 ```
-
 
 ### Broker API request examples
 
@@ -117,7 +118,6 @@ ddev exec "curl --silent --header 'accept: application/geo+json' http://scorpio.
 
 * <https://geojson.com/>
 
-
 ---
 
 * <https://http.dev/tools>
@@ -150,8 +150,12 @@ ddev console app:import:geojson toilet 'https://webkort.aarhuskommune.dk/spatial
 <https://www.opendata.dk/search?q=res_format:GeoJSON%20organization:city-of-aarhus>
 
 * [Public toilets in Aarhus Municipality](https://www.opendata.dk/city-of-aarhus/toiletter-i-aarhus-kommune)
-  * [Offentlige toiletter](http://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter): <http://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter>
-* [Parking in Aarhus Municipality – Zones, Permits and Spaces](https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune)
-  * [Handicapparkering](https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap): <https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap>
+  * [Offentlige
+    toiletter](http://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter):
+    <http://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter>
+* [Parking in Aarhus Municipality – Zones, Permits and
+  Spaces](https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune)
+  * [Handicapparkering](https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap):
+    <https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap>
 
 * <https://enter.ddev.site:33001/data/ngsi-ld/v1/types>
