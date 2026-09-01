@@ -1,12 +1,15 @@
-# Server counterpart to docker-compose.override.yml: the same broker, without
-# the local-only bits. Applied on top of docker-compose.server.yml.
+# The Scorpio broker is part of the development setup: the app proxies it at
+# /data and `task import` writes to it. It lives here rather than in
+# docker-compose.yml so the template file stays comparable with symfony-8.
 networks:
     scorpio:
 
 services:
     scorpio:
         image: scorpiobroker/all-in-one-runner:java-latest
-        restart: unless-stopped
+        restart: "no"
+        # Scorpio publishes no arm64 image.
+        platform: "linux/amd64"
         ports:
             - "9090"
         environment:
@@ -15,12 +18,14 @@ services:
             scorpio-db:
                 condition: service_healthy
         networks:
+            # On `app` so phpfpm can reach it as APP_BROKER_BASE_URI; on
+            # `scorpio` so it can reach its own database.
             - app
             - scorpio
 
     scorpio-db:
         image: postgis/postgis
-        restart: unless-stopped
+        platform: "linux/amd64"
         environment:
             - POSTGRES_USER=ngb
             - POSTGRES_PASSWORD=ngb
@@ -35,3 +40,5 @@ services:
             - scorpio
         volumes:
             - ./.docker/data/scorpio-db:/var/lib/postgresql/data
+        # https://stackoverflow.com/a/58806511
+        command: ["postgres", "-c", "log_statement=all"]

@@ -7,25 +7,6 @@ networks:
         internal: false
 
 services:
-    mariadb:
-        image: itkdev/mariadb:latest
-        networks:
-            - app
-        ports:
-            - "3306"
-        healthcheck:
-            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-            start_period: 10s
-            interval: 10s
-            timeout: 5s
-            retries: 3
-        environment:
-            - MYSQL_ROOT_PASSWORD=password
-            - MYSQL_USER=db
-            - MYSQL_PASSWORD=db
-            - MYSQL_DATABASE=db
-            #- ENCRYPT=1 # Uncomment to enable database encryption.
-
     phpfpm:
         image: itkdev/php8.4-fpm:latest
         user: ${COMPOSE_USER:-deploy}
@@ -41,9 +22,6 @@ services:
             - PHP_SENDMAIL_PATH=/usr/bin/msmtp --host=mail --port=1025 --read-recipients --read-envelope-from
             - DOCKER_HOST_DOMAIN=${COMPOSE_DOMAIN:?}
             - PHP_IDE_CONFIG=serverName=localhost
-        depends_on:
-            mariadb:
-                condition: service_healthy
         volumes:
             - .:/app
 
