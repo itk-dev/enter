@@ -21,5 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `task broker:entities` for reading entities back out of the broker.
 - Architecture Decision Records under `docs/adr`.
 - Added test suite
+- Scorpio broker as a Compose service in `docker-compose.override.yml`, with a
+  `docker-compose.server.override.yml` counterpart.
+
+### Changed
+
+- Replaced DDEV with the itk-dev Docker setup (`symfony-8` template): removed
+  `.ddev/`, rewrote `Taskfile.yml` to run through `itkdev-docker-compose`, and
+  updated the README accordingly.
+- `APP_BROKER_BASE_URI` now points at the `scorpio` Compose service rather than
+  the DDEV-only `scorpio.local` hostname.
+- `task test` runs the whole suite; it previously ran only `tests/Unit`.
+
+### Removed
+
+- The `mariadb` service, which no part of the project uses.
 
 [Unreleased]: https://github.com/itk-dev/enter
