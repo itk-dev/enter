@@ -1,17 +1,27 @@
 # Enter
 
-We use [DDEV](https://ddev.com/) and [Task](https://taskfile.dev/) for development:
+We use the [itk-dev Docker
+setup](https://github.com/itk-dev/devops_itkdev-docker) and
+[Task](https://taskfile.dev/) for development. The project is built from the
+`symfony-8` template, with two deliberate deviations: `docker-compose.yml` has
+no `mariadb` service (nothing here uses a database), and
+`docker-compose.override.yml` adds the Scorpio broker.
+
+Install from scratch — this also resets the broker database:
 
 ``` shell
 task site:install
 ```
 
+Or bring an existing checkout up to date:
+
 ``` shell
 task site:update
-ddev launch
+task site:open
 ```
 
-Run `task` to see what cool task are available. Running `ddev` can help with other stuff.
+Run `task` to see what cool task are available. Running `itkdev-docker-compose`
+can help with other stuff.
 
 ## Adapter
 
@@ -53,30 +63,41 @@ Design decisions are recorded in [docs/adr](docs/adr/README.md).
 
 ## Broker
 
-A [Scorpio Broker](https://scorpio.readthedocs.io/) is part of the development setup.
+A [Scorpio Broker](https://scorpio.readthedocs.io/) is part of the development
+setup. It is declared in `docker-compose.override.yml`, so it comes up with the
+rest of the stack and needs no separate start. It is not exposed through
+Traefik: reach it from inside the network as `http://scorpio:9090`, the value
+of `APP_BROKER_BASE_URI`.
 
 ``` shell
-ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/types | jq"
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent http://scorpio:9090/ngsi-ld/v1/types | jq"
+```
+
+The app also proxies the broker at `/data`, which is the easier way to read it
+from the host:
+
+``` shell
+curl --silent https://enter.local.itkdev.dk/data/ngsi-ld/v1/types | jq
 ```
 
 Load some example data:
 
 ``` shell name=import-toilet
-ddev console app:broker:entity:delete toilet
-ddev console app:broker:import:geojson toilet 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter'
-ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/entities --get --data-urlencode type=toilet" | jq '.[]|with_entries(select([.key] | inside(["id", "type", "location"])))'
+task console -- app:broker:entity:delete toilet
+task console -- app:broker:import:geojson toilet 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter'
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent http://scorpio:9090/ngsi-ld/v1/entities --get --data-urlencode type=toilet" | jq '.[]|with_entries(select([.key] | inside(["id", "type", "location"])))'
 ```
 
 ``` shell name=import-handicapparkering
-ddev console app:broker:entity:delete handicapparkering
-ddev console app:broker:import:geojson handicapparkering 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap'
-ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/entities --get --data-urlencode type=handicapparkering" | jq '.[]|with_entries(select([.key] | inside(["id", "type", "location"])))'
+task console -- app:broker:entity:delete handicapparkering
+task console -- app:broker:import:geojson handicapparkering 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap'
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent http://scorpio:9090/ngsi-ld/v1/entities --get --data-urlencode type=handicapparkering" | jq '.[]|with_entries(select([.key] | inside(["id", "type", "location"])))'
 ```
 
 ``` shell name=import-hundeskov
-ddev console app:broker:entity:delete hundeskov
-ddev console app:broker:import:geojson hundeskov 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=hundeskove_friluftsliv_aarhus'
-ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/entities --get --data-urlencode type=hundeskov" | jq '.[]|with_entries(select([.key] | inside(["id", "type", "location", "geometry"])))'
+task console -- app:broker:entity:delete hundeskov
+task console -- app:broker:import:geojson hundeskov 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=hundeskove_friluftsliv_aarhus'
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent http://scorpio:9090/ngsi-ld/v1/entities --get --data-urlencode type=hundeskov" | jq '.[]|with_entries(select([.key] | inside(["id", "type", "location", "geometry"])))'
 ```
 
 ### Broker API request examples
@@ -84,7 +105,7 @@ ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/entities --get --d
 <https://scorpio.readthedocs.io/en/latest/API_walkthrough.html#entity-creation>
 
 ``` shell name=scorpio-entity-create substitutions="{«entity-type»: Room, «entity-id»: 'house2:smartrooms:room1'}"
-ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/entities --header 'content-type: application/json' --data @-" <<'JSON'
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent http://scorpio:9090/ngsi-ld/v1/entities --header 'content-type: application/json' --data @-" <<'JSON'
 {
  "type": "«entity-type»",
  "id": "«entity-id»"
@@ -93,7 +114,7 @@ JSON
 
 
 # EPSG:4326?!
-ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/entities/«entity-id»/attrs --header 'content-type: application/json' --data @-" <<'JSON'
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent http://scorpio:9090/ngsi-ld/v1/entities/«entity-id»/attrs --header 'content-type: application/json' --data @-" <<'JSON'
 {
  "location": {
   "type": "geo:json",
@@ -109,19 +130,19 @@ JSON
 
 
 # Get the entities
-ddev exec "curl --silent --header 'accept: application/ld+json' http://scorpio.local:9090/ngsi-ld/v1/entities?type=«entity-type» | jq"
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent --header 'accept: application/ld+json' http://scorpio:9090/ngsi-ld/v1/entities?type=«entity-type» | jq"
 
 # Get the entities as GeoJSON
-ddev exec "curl --silent --header 'accept: application/geo+json' http://scorpio.local:9090/ngsi-ld/v1/entities?type=«entity-type» | jq"
+itkdev-docker-compose exec -T phpfpm sh -c "curl --silent --header 'accept: application/geo+json' http://scorpio:9090/ngsi-ld/v1/entities?type=«entity-type» | jq"
 ```
 
 > [!CAUTION]
 > Excuse me what?!
 >
 > ``` shell
-> ddev exec "curl --silent --header 'accept: application/geo+json' 'http://scorpio.local:9090/ngsi-ld/v1/entities?georel=near;maxDistance%3D%3D2000&geometry=Point&coordinates=%5B8,40%5D'"
-> ddev exec "curl --silent --header 'accept: application/geo+json' 'http://scorpio.local:9090/ngsi-ld/v1/entities?georel=near;maxDistance==2000&geometry=Point&coordinates=%5B8,40%5D'"
-> ddev exec "curl --silent --header 'accept: application/geo+json' 'http://scorpio.local:9090/ngsi-ld/v1/entities?georel=near;maxDistance==2000&geometry=Point&coordinates=[10,56]'"
+> itkdev-docker-compose exec -T phpfpm sh -c "curl --silent --header 'accept: application/geo+json' 'http://scorpio:9090/ngsi-ld/v1/entities?georel=near;maxDistance%3D%3D2000&geometry=Point&coordinates=%5B8,40%5D'"
+> itkdev-docker-compose exec -T phpfpm sh -c "curl --silent --header 'accept: application/geo+json' 'http://scorpio:9090/ngsi-ld/v1/entities?georel=near;maxDistance==2000&geometry=Point&coordinates=%5B8,40%5D'"
+> itkdev-docker-compose exec -T phpfpm sh -c "curl --silent --header 'accept: application/geo+json' 'http://scorpio:9090/ngsi-ld/v1/entities?georel=near;maxDistance==2000&geometry=Point&coordinates=[10,56]'"
 > > ```
 
 ## GeoJSON
@@ -167,7 +188,7 @@ ddev exec "curl --silent --header 'accept: application/geo+json' http://scorpio.
 Must `location` be a `Point` in ngsi-ld?
 
 ``` shell
-ddev exec --service scorpio-db "psql ngb ngb"
+itkdev-docker-compose exec scorpio-db psql ngb ngb
 ```
 
 ``` sql
@@ -177,13 +198,13 @@ ddev exec --service scorpio-db "psql ngb ngb"
 <https://postgis.net/docs/ST_GeomFromGeoJSON.html>
 
 ``` shell
-ddev exec --service scorpio-db "psql ngb ngb" <<< "SELECT id , e_types, location FROM entity;"
+itkdev-docker-compose exec -T scorpio-db psql ngb ngb <<< "SELECT id , e_types, location FROM entity;"
 ```
 
 ``` shell name=hmm
-ddev console app:import:geojson toilet 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter' \
-    && ddev exec --service scorpio-db "psql ngb ngb" <<< "SELECT id , e_types, ST_AsText(location) AS location FROM entity WHERE id = 'toilet:0000';" \
-    && ddev exec --service scorpio-db "psql ngb ngb" <<< "SELECT temporalentity_id, ST_AsText(location) AS location, ST_asText(geovalue) AS geovalue, createdat FROM temporalentityattrinstance WHERE temporalentity_id = 'toilet:0000' ORDER BY createdat DESC LIMIT 10;"
+task console -- app:import:geojson toilet 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter' \
+    && itkdev-docker-compose exec -T scorpio-db psql ngb ngb <<< "SELECT id , e_types, ST_AsText(location) AS location FROM entity WHERE id = 'toilet:0000';" \
+    && itkdev-docker-compose exec -T scorpio-db psql ngb ngb <<< "SELECT temporalentity_id, ST_AsText(location) AS location, ST_asText(geovalue) AS geovalue, createdat FROM temporalentityattrinstance WHERE temporalentity_id = 'toilet:0000' ORDER BY createdat DESC LIMIT 10;"
 ```
 
 <https://www.opendata.dk/search?q=res_format:GeoJSON%20organization:city-of-aarhus>
@@ -197,4 +218,4 @@ ddev console app:import:geojson toilet 'https://webkort.aarhuskommune.dk/spatial
   * [Handicapparkering](https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap):
     <https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap>
 
-* <https://enter.ddev.site:33001/data/ngsi-ld/v1/types>
+* <https://enter.local.itkdev.dk/data/ngsi-ld/v1/types>
