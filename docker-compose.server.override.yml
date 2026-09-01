@@ -1,0 +1,36 @@
+networks:
+    scorpio:
+
+# https://docs.ddev.com/en/stable/users/extend/custom-docker-services/
+services:
+    phpfpm:
+        image: itkdev/php8.5-fpm:alpine
+
+    scorpio:
+        hostname: scorpio.local
+        image: scorpiobroker/all-in-one-runner:java-latest
+        restart: "no"
+        ports:
+            - "9090"
+        environment:
+            - DBHOST=scorpio-db
+        depends_on:
+            - "scorpio-db"
+        networks:
+            - app
+            - scorpio
+        platform: "linux/amd64"
+
+    scorpio-db:
+        image: postgis/postgis
+        environment:
+            - POSTGRES_USER=ngb
+            - POSTGRES_PASSWORD=ngb
+            - POSTGRES_DB=ngb
+        networks:
+            - scorpio
+        volumes:
+            - ./.docker/data/scorpio-db:/var/lib/postgresql/data
+        platform: "linux/amd64"
+        # https://stackoverflow.com/a/58806511
+        command: ["postgres", "-c", "log_statement=all"]
