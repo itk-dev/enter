@@ -26,15 +26,17 @@ source feed (JSON)
         → context broker
 ```
 
-| Class                                       | Responsibility                                   |
-| ------------------------------------------- | ------------------------------------------------ |
-| `App\Source\SourceInterface`                | Contract for one input data set                  |
-| `App\Source\FeedReader`                     | Feed URL → decoded JSON                          |
-| `App\Source\MtmSpatialMaps\HandicapParking` | Disabled parking bays → `OnStreetParking`        |
-| `App\Geo\Wgs84Transformer`                  | Any registered CRS → WGS84, any GeoJSON geometry |
-| `App\Ngsi\NgsiEntity`                       | Builds normalized NGSI-LD entities               |
-| `App\Broker\NgsiLdBroker`                   | Batch upsert to the broker                       |
-| `App\Command\ImportCommand`                 | `app:import`                                     |
+| Class                                       | Responsibility                                    |
+| ------------------------------------------- | ------------------------------------------------- |
+| `App\Source\SourceInterface`                | Contract for one input data set                   |
+| `App\Source\SourceCatalog`                  | Reads the source manifest                         |
+| `App\Source\SourceDescriptor`               | One manifest entry: what a data set is and where  |
+| `App\Source\FeedReader`                     | Feed URL → decoded JSON                           |
+| `App\Source\MtmSpatialMaps\HandicapParking` | Disabled parking bays → `OnStreetParking`         |
+| `App\Geo\Wgs84Transformer`                  | Any registered CRS → WGS84, any GeoJSON geometry  |
+| `App\Ngsi\NgsiEntity`                       | Builds normalized NGSI-LD entities                |
+| `App\Broker\NgsiLdBroker`                   | Batch upsert to the broker                        |
+| `App\Command\ImportCommand`                 | `app:import`                                      |
 
 ``` shell
 task import                                                # list the available sources
@@ -43,13 +45,30 @@ task import -- mtm_spatialmaps-handicap-parking --dry-run --limit 5    # print t
 task broker:entities -- OnStreetParking 10                 # read back what landed
 ```
 
-Adding a data set means adding one `SourceInterface` implementation. It is
-discovered through `#[AutoconfigureTag('app.source')]` and shows up as an
-`app:import` argument with no further wiring.
+### Source manifest
+
+Every data set is recorded in [config/sources.yaml](config/sources.yaml), keyed
+by the identifier `app:import` takes as its argument. The feed URL, the
+coordinate reference system it publishes and the Smart Data Model it is
+published as are read from there, so each exists in one place only. The rest of
+an entry is what no code can state: owner, contact, licence, update frequency,
+and the source fields deliberately left unpublished with the reason for each.
+The field mapping stays in the source class, which is the only place that knows
+the feed's shape.
+
+Field names follow [DCAT-AP], the metadata profile European data portals
+harvest, so registering a data set is a translation of its entry rather than a
+new survey. See [ADR 007](docs/adr/007-source-manifest.md).
+
+Adding a data set means adding one `SourceInterface` implementation and one
+manifest entry. The class is discovered through
+`#[AutoconfigureTag('app.source')]` and shows up as an `app:import` argument
+with no further wiring.
 
 Design decisions are recorded in [docs/adr](docs/adr/README.md).
 
 [NGSI-LD]: https://www.etsi.org/committee/cim
+[DCAT-AP]: https://semiceu.github.io/DCAT-AP/
 
 ## Broker
 
