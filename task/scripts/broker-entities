@@ -1,0 +1,34 @@
+#!/bin/sh
+# List entities of a given type from the NGSI-LD broker.
+#
+# Read requests need a domain context supplied in a Link header; without it the
+# broker cannot expand a short type name into the full term the entity was
+# written under. The context comes from ENTER_NGSI_DOMAIN_CONTEXT, which must
+# be the one defining the type being asked for.
+#
+# Usage: broker-entities <type> [limit]
+
+set -eu
+
+if [ $# -lt 1 ]; then
+    echo "Usage: broker-entities <type> [limit]" >&2
+    echo "  <type>   NGSI-LD entity type, e.g. OnStreetParking" >&2
+    echo "  [limit]  maximum entities to return (default 100)" >&2
+    exit 64
+fi
+
+TYPE="$1"
+LIMIT="${2:-100}"
+
+RESPONSE=$(curl -sS \
+    -H "Link: <${ENTER_NGSI_DOMAIN_CONTEXT}>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\"" \
+    "${APP_BROKER_BASE_URI%/}/ngsi-ld/v1/entities?type=${TYPE}&limit=${LIMIT}")
+
+printf '%s\n' "$RESPONSE"
+
+# A misspelled type, or one whose context is not the one configured, returns an
+# empty list with HTTP 200 — indistinguishable from an empty broker or a failed
+# import. Say what was asked for so the difference is visible.
+if [ "$(printf '%s' "$RESPONSE" | tr -d '[:space:]')" = "[]" ]; then
+    printf '\nNo entities of type "%s". A type that does not match, or one defined in a context other than the configured ENTER_NGSI_DOMAIN_CONTEXT, returns an empty list rather than an error — check both before concluding the import failed.\n' "$TYPE" >&2
+fi
