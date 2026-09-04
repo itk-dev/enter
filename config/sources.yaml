@@ -1,0 +1,46 @@
+# The data sets this application publishes, one entry per source key.
+#
+# The facts the import needs — where the feed is read from, the coordinate
+# reference system it publishes, the Smart Data Model it is published as — are
+# read from here, so they exist in exactly one place.
+#
+# The remaining fields record what no code can state: who owns the data, on
+# what terms, how often it changes, and which source fields are deliberately
+# not published. The rule is to record only what the code cannot tell you, so
+# the field mapping itself stays in the source class, which is the only place
+# that knows the feed's shape.
+#
+# Field names follow DCAT-AP, the metadata profile European data portals
+# harvest, so registering a data set is a translation of its entry rather than
+# a new survey. See docs/adr/007-source-manifest.md.
+
+sources:
+    mtm_spatialmaps-handicap-parking:
+        title: 'Handicapparkering, Aarhus Kommune'
+        description: >-
+            Disabled parking bays in Aarhus Municipality, with the number of
+            reserved bays per location.
+        publisher: 'Aarhus Kommune'
+        contact: ppg@aarhus.dk
+        landing_page: 'https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune'
+        access_url: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap'
+        media_type: application/geo+json
+        crs: 'EPSG:25832'
+        model: OnStreetParking
+        update_frequency: continuous
+
+        # The portal states no licence for this data set. DCAT-AP requires
+        # one, so it has to be settled with the data owner before the
+        # catalogue can be registered anywhere.
+        licence: ~
+
+        # Fields the feed carries that are not published. Recorded here
+        # because the source class shows what is mapped but cannot show what
+        # was left out, or why.
+        omitted_fields:
+            ident: 'Single-letter code; its meaning is not documented and not confirmed by the data owner.'
+            oprettet_af: 'Directory username of the municipal employee who created the record — personal data.'
+            rettet_af: 'Directory username of the municipal employee who last edited the record — personal data.'
+            oprettet_dato: 'Describes the register record rather than the parking bay.'
+            rettet_dato: 'Describes the register record rather than the parking bay. A candidate for observedAt, not yet mapped.'
+            mi_style: 'MapInfo rendering style, empty throughout the export.'
