@@ -7,47 +7,50 @@ namespace App\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\FeedReader;
+use App\Source\SourceCatalog;
+use App\Source\SourceDescriptor;
 use App\Source\SourceInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Disabled parking bays in Aarhus Municipality, exported from SpatialMap.
- * https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap.
  *
- * Published at site level as OnStreetParking rather than as a ParkingGroup
- * subdivision: the feed describes locations with a count of reserved bays and
- * nothing above them, and ParkingGroup requires a parent site this source does
- * not contain. See ADR 006, and ADR 005 rule 2 for the principle behind it.
+ * Where the feed is read from, the CRS it publishes and the model it is
+ * published as come from this key's manifest entry; this class owns only the
+ * field mapping.
  *
+ * Published at site level rather than as a ParkingGroup subdivision: the feed
+ * describes locations with a count of reserved bays and nothing above them,
+ * and ParkingGroup requires a parent site this source does not contain. See
+ * ADR 006, and ADR 005 rule 2 for the principle behind it.
+ *
+ * @see config/sources.yaml
  * @see https://github.com/smart-data-models/dataModel.Parking/tree/master/OnStreetParking
  */
 final readonly class HandicapParking implements SourceInterface
 {
-    /**
-     * The CRS(coordinate reference system) this feed publishes - SRID (Spatial reference identifier).
-     */
-    private const string SOURCE_SRID = 'EPSG:25832';
+    private const string KEY = 'mtm_spatialmaps-handicap-parking';
 
     public function __construct(
         private FeedReader $reader,
         private Wgs84Transformer $transformer,
-        #[Autowire(env: 'ENTER_MTM_SPATIALMAPS_HANDICAP_PARKING_SOURCE')]
-        private string $location,
+        private SourceCatalog $catalog,
     ) {
     }
 
     public function key(): string
     {
-        return 'mtm_spatialmaps-handicap-parking';
+        return self::KEY;
     }
 
     public function entities(): iterable
     {
+        $source = $this->catalog->get(self::KEY);
+
         // The export is a GeoJSON FeatureCollection, so the records live under
         // `features`. Iterating the document itself would walk its two
         // top-level keys instead.
-        foreach ($this->reader->read($this->location)['features'] ?? [] as $feature) {
-            if (\is_array($feature) && null !== $entity = $this->toEntity($feature)) {
+        foreach ($this->reader->read($source->accessUrl)['features'] ?? [] as $feature) {
+            if (\is_array($feature) && null !== $entity = $this->toEntity($feature, $source)) {
                 yield $entity;
             }
         }
@@ -56,7 +59,7 @@ final readonly class HandicapParking implements SourceInterface
     /**
      * @param array<string, mixed> $feature GeoJSON Feature
      */
-    private function toEntity(array $feature): ?NgsiEntity
+    private function toEntity(array $feature, SourceDescriptor $source): ?NgsiEntity
     {
         // A Feature keeps its attributes under `properties` and its geometry
         // beside them, so neither is at the feature's top level.
@@ -76,8 +79,8 @@ final readonly class HandicapParking implements SourceInterface
         }
 
         $entity = new NgsiEntity(
-            \sprintf('urn:ngsi-ld:OnStreetParking:aarhus-handicap-%s', $key),
-            'OnStreetParking'
+            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-%s', $source->model, $key),
+            $source->model
         );
 
         // `forDisabled` rather than ParkingGroup's `onlyDisabled`: the two
@@ -88,8 +91,8 @@ final readonly class HandicapParking implements SourceInterface
             ->property('description', trim((string) ($row['bemrk'] ?? '')))
             ->property('category', ['forDisabled'])
             ->property('totalSpotNumber', (int) ($row['invalidepladser'] ?? 0))
-            ->property('source', $this->location)
-            ->geoProperty('location', $this->transformer->geometry(self::SOURCE_SRID, $geometry));
+            ->property('source', $source->accessUrl)
+            ->geoProperty('location', $this->transformer->geometry($source->crs, $geometry));
     }
 
     /**
