@@ -23,7 +23,7 @@ final readonly class DataSourceReader
      *                           be fetched, does not contain valid JSON, or
      *                           does not decode to an array
      */
-    public function read(string $location): array
+    public function read(string $url): array
     {
         if (!str_starts_with($location, 'http://') && !str_starts_with($location, 'https://')) {
             throw new \RuntimeException(\sprintf('Feed location must be an http(s) URL, got "%s".', $location));
