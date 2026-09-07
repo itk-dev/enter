@@ -1,4 +1,3 @@
-<?php
 #### Link to ticket
 
 Please add a link to the ticket being addressed by this change.
