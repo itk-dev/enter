@@ -26,8 +26,7 @@ written description of the same value, which can then disagree. Recording only
 the first leaves the rest unwritten, and the questions it answers are then
 answered from memory.
 
-This ADR serves to decide where a data set's own facts are recorded, and which
-of them the code reads.
+This ADR serves to decide where a data set's own facts are recorded.
 
 ### Drivers
 
@@ -114,9 +113,6 @@ Rationale:
 - **A wrong reference system or model in the manifest is as damaging as a wrong
   one in code, while looking less like code.** A wrong reference system yields
   coordinates that are well-formed and in the wrong place.
-- **Changing the published model changes entity identifiers.** Editing one
-  value can therefore orphan everything already published; see ADR 005 and ADR
-  006.
 - **Fields no code reads have nothing keeping them current.** Until catalogue
   entities are generated from them, only review does.
 - Validating the record is work the environment did not require.
