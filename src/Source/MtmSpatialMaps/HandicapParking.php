@@ -12,7 +12,7 @@ use App\Source\SourceDescriptor;
 use App\Source\SourceInterface;
 
 /**
- * Disabled parking bays in Aarhus Municipality
+ * Disabled parking bays in Aarhus Municipality.
  *
  * @see config/sources.yaml
  * @see https://github.com/smart-data-models/dataModel.Parking/tree/master/OnStreetParking

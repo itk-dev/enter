@@ -46,7 +46,6 @@ with no further wiring.
 Design decisions are recorded in [docs/adr](docs/adr/README.md).
 
 [NGSI-LD]: https://www.etsi.org/committee/cim
-[DCAT-AP]: https://semiceu.github.io/DCAT-AP/
 
 ## Broker
 
