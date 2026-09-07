@@ -10,7 +10,7 @@
 
 ## Context
 
-This application publishes data sets it does not own. This ADR serves 
+This application publishes data sets it does not own. This ADR serves
 to decide where the data sets and their specifications live.
 
 ### Drivers
