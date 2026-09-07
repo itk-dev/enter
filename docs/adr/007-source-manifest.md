@@ -10,109 +10,63 @@
 
 ## Context
 
-Each published data set carries facts the import needs — where the feed is read
-from, the coordinate reference system its coordinates are in, and the model it
-is published as — and facts only people need: who owns the data, on what terms
-it may be republished, how often it changes, and which of its fields are
-deliberately not published, with the reason for each.
+This application publishes data sets it does not own. Each needs a
+description — where it comes from, how to read it, who owns it, on what terms
+it may be republished.
 
-The first group must be readable by code. The second is what a public data
-portal requires at registration, and what a data owner asks for when
-establishing what happened to their data. Both grow with the number of data
-sets.
-
-Recording the two groups separately produces a machine-readable value and a
-written description of the same value, which can then disagree. Recording only
-the first leaves the rest unwritten, and the questions it answers are then
-answered from memory.
-
-This ADR serves to decide where a data set's own facts are recorded.
+This ADR serves to decide where the data sets and their descriptions live.
 
 ### Drivers
 
-- **Functional:** the code reads the facts it needs from the same record a
-  person reads; a data set is registerable on a public portal without a fresh
-  survey; an incomplete record fails the import that needs it rather than
-  producing an incomplete publication.
-- **Non-functional:** adding a data set requires no deployment change; the
-  record is reviewable as a diff; no fact exists in two places.
+- **Functional:** each data set is listed with what is needed to read and
+  republish it.
+- **Non-functional:** adding a data set needs no deployment change, and its
+  description is reviewable as a diff.
 
 ### Options Considered
 
-1. **One environment variable per data set.** Follows the convention that
-   configuration belongs in the environment, and lets a value differ per
-   environment. But variable names grow with the catalogue, so each new data
-   set becomes a deployment change; the environment carries strings only,
-   leaving metadata beyond an address nowhere to live; and values are invisible
-   in review, so a wrong one is found by running the import.
-2. **Every fact in the class that maps the data set.** Nothing can diverge,
-   there being one copy, and the language enforces its presence. But metadata
-   is then readable only by opening code, extracting it for portal registration
-   requires writing an extractor, and correcting a licence or a contact becomes
-   a code change reviewed as one.
-3. **A committed manifest the code reads.** One record per data set, keyed by
-   the identifier the import selects it with, holding the facts the code needs
-   beside those it does not, in a shape a catalogue profile can be generated
-   from. Validating the record becomes work of our own, and the values are
-   identical in every environment.
+1. **One environment variable per data set.** Variable names grow with the
+   catalogue, and the environment holds only strings.
+2. **Every fact in the class that maps the data set.** Nothing can diverge, but
+   the description is readable only by opening code, and correcting a licence
+   becomes a code change.
+3. **A committed manifest the code reads.** One record per data set, holding
+   the description beside the values the import needs; its shape has to be
+   declared.
 4. **An external catalogue or registry service.** The eventual home of
-   published metadata, with search and harvesting already built. But it has to
-   be running for an import to work, it is a second system to operate, and it
-   must be populated before anything can be published from it — from records
-   that would have to live somewhere else in the meantime.
+   published metadata, but a second system to operate, populated before
+   anything can be published from it.
 
 ## Decision
 
-Record each data set in a **committed manifest**, keyed by the identifier the
-import selects it with, and read from it every fact the code needs.
+Keep one **committed manifest** listing every data set this application
+publishes, keyed by the identifier the import selects a data set by, and read
+from it every fact the code needs.
 
-Four rules follow:
-
-1. **Record only what the code cannot state.** How a feed's fields map onto the
-   model, and every quirk of its shape, stay in the class that performs the
-   mapping. Restating them in the manifest recreates the divergence the
-   manifest exists to prevent.
-2. **A fact both the code and a reader need is read from the manifest.** It is
-   not also written in code, in a comment, or in the README.
-3. **An incomplete or malformed record is an error.** Fields an import cannot
-   run without are required, and their absence raises rather than defaulting. A
-   fact that is unknown is recorded as unknown, so the gap stays visible.
-4. **Name the fields after the catalogue profile the data will be registered
-   under** — DCAT-AP — so that publication is a translation rather than a
-   redesign.
-
-Rationale:
-
-- What has to be prevented is a value diverging from its description, so the
-  two belong to the same record.
-- Portal registration and answering a data owner need the same fields, and
-  neither can be derived from mapping code.
-- A record is reviewed alongside the class that consumes it, so a reviewer sees
-  the address, the reference system and the model together with the mapping
-  that assumes them.
-- Where a feed is read from is a fact about the data set, not about the machine
-  running the import, so the environment is the wrong place for it.
+1. **Record only what the code cannot state.** Field mappings and feed quirks
+   stay in the class that maps the data set.
+2. **A fact the manifest records is not restated elsewhere**, in code, a
+   comment, or documentation.
+3. **An incomplete record is an error.** Required fields raise rather than
+   default, an unknown fact is recorded as unknown, and the shape is a schema
+   the framework validates when the application is built.
+4. **Name the fields after DCAT-AP**, the profile the data is registered under,
+   so publication is a translation.
 
 ## Consequences
 
 ### Positive
 
-- One record per data set, reviewable as a diff and versioned with the code.
-- Adding a data set is one class and one record, with no deployment change.
-- Registration on a public portal is a translation of records that exist.
-- Licence, ownership and what was withheld have a single answer, and an
-  unanswered question shows as an empty value rather than as nothing at all.
-- The same records can generate catalogue entities later without introducing a
-  second source of truth.
+- Every data set is listed in one place, reviewable as a diff and versioned
+  with the code.
+- Portal registration and owner questions translate records that already exist.
+- A wrong record, or a field the manifest does not define, fails the build.
 
 ### Negative / Trade-offs
 
-- **Values are identical in every environment.** Pointing a data set at a copy
-  for testing means editing a committed file. That is consistent with reading
-  feeds where they live, but it removes an escape hatch the environment offered.
-- **A wrong reference system or model in the manifest is as damaging as a wrong
-  one in code, while looking less like code.** A wrong reference system yields
-  coordinates that are well-formed and in the wrong place.
-- **Fields no code reads have nothing keeping them current.** Until catalogue
-  entities are generated from them, only review does.
-- Validating the record is work the environment did not require.
+- Values are identical in every environment, so pointing a data set at a test
+  copy means editing a committed file.
+- A wrong reference system looks less like code than it is, and yields
+  coordinates that are well-formed and misplaced.
+- A malformed record blocks every build, not just the import that reads it.
+- Fields no code reads have only review keeping them current.
