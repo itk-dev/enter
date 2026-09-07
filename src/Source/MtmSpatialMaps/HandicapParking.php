@@ -78,12 +78,12 @@ final readonly class HandicapParking implements SourceInterface
         // models have separate category enums, so values are not interchangeable.
         // `onStreet` is dropped because the entity type already states it.
         return $entity
-            ->property('name', $this->address($row))
-            ->property('description', trim((string) ($row['bemrk'] ?? '')))
-            ->property('category', ['forDisabled'])
-            ->property('totalSpotNumber', (int) ($row['invalidepladser'] ?? 0))
-            ->property('source', $source->accessUrl)
-            ->geoProperty('location', $this->transformer->geometry($source->crs, $geometry));
+            ->setProperty('name', $this->address($row))
+            ->setProperty('description', trim((string) ($row['bemrk'] ?? '')))
+            ->setProperty('category', ['forDisabled'])
+            ->setProperty('totalSpotNumber', (int) ($row['invalidepladser'] ?? 0))
+            ->setProperty('source', $source->accessUrl)
+            ->geoProperty('location', $this->transformer->transformGeometry($source->crs, $geometry));
     }
 
     /**

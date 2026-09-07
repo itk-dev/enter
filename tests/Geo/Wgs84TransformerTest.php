@@ -93,7 +93,7 @@ class Wgs84TransformerTest extends TestCase
 
     public function testItReprojectsAPointGeometry(): void
     {
-        $geometry = $this->transformer->geometry(self::UTM32, [
+        $geometry = $this->transformer->transformGeometry(self::UTM32, [
             'type' => 'Point',
             'coordinates' => [self::REFERENCE_EASTING, self::REFERENCE_NORTHING],
         ]);
@@ -104,7 +104,7 @@ class Wgs84TransformerTest extends TestCase
 
     public function testItReprojectsALineString(): void
     {
-        $geometry = $this->transformer->geometry(self::UTM32, [
+        $geometry = $this->transformer->transformGeometry(self::UTM32, [
             'type' => 'LineString',
             'coordinates' => [
                 [574108.2557507273, 6222343.6199512165],
@@ -120,7 +120,7 @@ class Wgs84TransformerTest extends TestCase
 
     public function testItReprojectsAPolygonPreservingNesting(): void
     {
-        $geometry = $this->transformer->geometry(self::UTM32, [
+        $geometry = $this->transformer->transformGeometry(self::UTM32, [
             'type' => 'Polygon',
             'coordinates' => [
                 [
@@ -147,7 +147,7 @@ class Wgs84TransformerTest extends TestCase
             [574108.0, 6222343.0],
         ];
 
-        $geometry = $this->transformer->geometry(self::UTM32, [
+        $geometry = $this->transformer->transformGeometry(self::UTM32, [
             'type' => 'MultiPolygon',
             'coordinates' => [[$ring], [$ring]],
         ]);
@@ -160,14 +160,14 @@ class Wgs84TransformerTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->transformer->geometry(self::UTM32, ['type' => 'Point']);
+        $this->transformer->transformGeometry(self::UTM32, ['type' => 'Point']);
     }
 
     public function testItRejectsAGeometryCollection(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->transformer->geometry(self::UTM32, [
+        $this->transformer->transformGeometry(self::UTM32, [
             'type' => 'GeometryCollection',
             'geometries' => [],
         ]);
@@ -177,6 +177,6 @@ class Wgs84TransformerTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->transformer->geometry(self::UTM32, ['type' => 'Point', 'coordinates' => [574108.0]]);
+        $this->transformer->transformGeometry(self::UTM32, ['type' => 'Point', 'coordinates' => [574108.0]]);
     }
 }

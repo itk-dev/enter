@@ -127,11 +127,13 @@ final class Wgs84Transformer
      * of those for Polygon, and so on. Recursing until the first element is
      * numeric handles every depth without enumerating the types.
      *
+     * @param array<array-key, mixed> $coordinates
+     *
      * @return array<int, mixed>
      */
     private function transformCoordinates(string $srid, array $coordinates): array
     {
-        if (!\is_array($coordinates) || [] === $coordinates) {
+        if ([] === $coordinates) {
             throw new \InvalidArgumentException('GeoJSON coordinates must be a non-empty array.');
         }
 

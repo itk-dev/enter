@@ -25,23 +25,23 @@ final readonly class DataSourceReader
      */
     public function read(string $url): array
     {
-        if (!str_starts_with($location, 'http://') && !str_starts_with($location, 'https://')) {
-            throw new \RuntimeException(\sprintf('Feed location must be an http(s) URL, got "%s".', $location));
+        if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+            throw new \RuntimeException(\sprintf('Feed location must be an http(s) URL, got "%s".', $url));
         }
 
-        $json = $this->fetch($location);
+        $json = $this->fetch($url);
 
         try {
             $decoded = json_decode($json, true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
-            throw new \RuntimeException(\sprintf('Invalid JSON in "%s": %s', $location, $exception->getMessage()), previous: $exception);
+            throw new \RuntimeException(\sprintf('Invalid JSON in "%s": %s', $url, $exception->getMessage()), previous: $exception);
         }
 
         // A JSON document may legally be a scalar. Every feed we consume is a
         // list or an object, and a scalar here means the location is wrong
         // rather than that the feed is empty.
         if (!\is_array($decoded)) {
-            throw new \RuntimeException(\sprintf('Expected a JSON array or object in "%s", got %s.', $location, get_debug_type($decoded)));
+            throw new \RuntimeException(\sprintf('Expected a JSON array or object in "%s", got %s.', $url, get_debug_type($decoded)));
         }
 
         return $decoded;

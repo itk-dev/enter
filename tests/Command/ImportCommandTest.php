@@ -121,7 +121,7 @@ class ImportCommandTest extends TestCase
     public function testDryRunPrintsThePayloadAndSendsNothing(): void
     {
         $entity = new NgsiEntity('urn:ngsi-ld:Example:1', 'Example')
-            ->property('name', 'Example');
+            ->setProperty('name', 'Example');
 
         $tester = $this->tester([$this->source('one-entity', $entity)]);
 
