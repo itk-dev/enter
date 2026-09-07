@@ -30,7 +30,7 @@ final class NgsiEntity
      * because the source data uses "" for "not filled in" and a broker would
      * otherwise store the emptiness as a fact.
      */
-    public function property(string $name, mixed $value, ?string $observedAt = null): self
+    public function setProperty(string $name, mixed $value, ?string $observedAt = null): self
     {
         if (null === $value || '' === $value || [] === $value) {
             return $this;
