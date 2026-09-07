@@ -10,31 +10,28 @@
 
 ## Context
 
-This application publishes data sets it does not own. Each needs a
-description — where it comes from, how to read it, who owns it, on what terms
-it may be republished.
-
-This ADR serves to decide where the data sets and their descriptions live.
+This application publishes data sets it does not own. This ADR serves 
+to decide where the data sets and their specifications live.
 
 ### Drivers
 
 - **Functional:** each data set is listed with what is needed to read and
   republish it.
 - **Non-functional:** adding a data set needs no deployment change, and its
-  description is reviewable as a diff.
+  specification is reviewable as a diff.
 
 ### Options Considered
 
 1. **One environment variable per data set.** Variable names grow with the
-   catalogue, and the environment holds only strings.
+   collection, and the environment holds only strings.
 2. **Every fact in the class that maps the data set.** Nothing can diverge, but
-   the description is readable only by opening code, and correcting a licence
+   the specification is readable only by opening code, and correcting a licence
    becomes a code change.
 3. **A committed manifest the code reads.** One record per data set, holding
-   the description beside the values the import needs; its shape has to be
+   the specification beside the values the import needs; its shape has to be
    declared.
 4. **An external catalogue or registry service.** The eventual home of
-   published metadata, but a second system to operate, populated before
+   published specifications, but a second system to operate, populated before
    anything can be published from it.
 
 ## Decision
@@ -50,8 +47,8 @@ from it every fact the code needs.
 3. **An incomplete record is an error.** Required fields raise rather than
    default, an unknown fact is recorded as unknown, and the shape is a schema
    the framework validates when the application is built.
-4. **Name the fields after DCAT-AP**, the profile the data is registered under,
-   so publication is a translation.
+4. **Structure each record after DCAT-AP**, the specification the data will be
+   published under, so publication is a translation rather than a redesign.
 
 ## Consequences
 
@@ -59,7 +56,8 @@ from it every fact the code needs.
 
 - Every data set is listed in one place, reviewable as a diff and versioned
   with the code.
-- Portal registration and owner questions translate records that already exist.
+- Publishing a specification onward, and answering the data owner, translate
+  records that already exist.
 - A wrong record, or a field the manifest does not define, fails the build.
 
 ### Negative / Trade-offs
