@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 interface SourceInterface
 {
     /**
-     * Identifier used to select this source on the command line.
+     * Unique identifier for this source.
      */
     public function key(): string;
 
