@@ -129,7 +129,7 @@ final class Wgs84Transformer
      *
      * @return array<int, mixed>
      */
-    private function transformCoordinates(string $srid, mixed $coordinates): array
+    private function transformCoordinates(string $srid, array $coordinates): array
     {
         if (!\is_array($coordinates) || [] === $coordinates) {
             throw new \InvalidArgumentException('GeoJSON coordinates must be a non-empty array.');
