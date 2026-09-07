@@ -107,7 +107,7 @@ final class Wgs84Transformer
      *
      * @return array{type: string, coordinates: mixed}
      */
-    public function geometry(string $srid, array $geometry): array
+    public function transformGeometry(string $srid, array $geometry): array
     {
         $type = $geometry['type'] ?? null;
 
