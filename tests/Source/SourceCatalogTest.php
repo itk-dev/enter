@@ -84,7 +84,7 @@ class SourceCatalogTest extends TestCase
             YAML));
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('missing the required field "crs"');
+        $this->expectExceptionMessage('The child config "crs" under "sources.a-source" must be configured');
 
         $catalog->all();
     }
@@ -103,9 +103,96 @@ class SourceCatalogTest extends TestCase
             YAML));
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('needs a reason');
+        $this->expectExceptionMessage('"sources.a-source.omitted_fields.some_field" cannot contain an empty value');
 
         $catalog->all();
+    }
+
+    /**
+     * The import selects a data set by the key written in the manifest, and the
+     * config tree rewrites a key that has dashes and no underscore unless told
+     * otherwise. A rewritten key stops matching without saying so.
+     */
+    public function testItKeepsADashedSourceKeyIntact(): void
+    {
+        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+            sources:
+                handicap-parking:
+                    title: A source
+                    access_url: https://example.com/feed.json
+                    crs: EPSG:25832
+                    model: Example
+            YAML));
+
+        $this->assertSame(['handicap-parking'], array_keys($catalog->all()));
+        $this->assertSame('handicap-parking', $catalog->get('handicap-parking')->key);
+    }
+
+    /**
+     * A misspelled optional field was dropped in silence before, which loses a
+     * fact the record exists to carry.
+     */
+    public function testItRejectsAFieldTheManifestDoesNotDefine(): void
+    {
+        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+            sources:
+                a-source:
+                    title: A source
+                    access_url: https://example.com/feed.json
+                    crs: EPSG:25832
+                    model: Example
+                    license: CC-BY-4.0
+            YAML));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Unrecognized option "license" under "sources.a-source"');
+
+        $catalog->all();
+    }
+
+    public function testItRejectsAnEntryThatIsNotAMapping(): void
+    {
+        $catalog = new SourceCatalog($this->manifest("sources:\n    a-source: just a string\n"));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid type for path "sources.a-source"');
+
+        $catalog->all();
+    }
+
+    public function testItRejectsAManifestThatRegistersNothing(): void
+    {
+        $catalog = new SourceCatalog($this->manifest("sources: {}\n"));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('should have at least 1 element');
+
+        $catalog->all();
+    }
+
+    /**
+     * An empty value means "not filled in", the same as an absent key, so an
+     * unanswered question reads the same either way.
+     */
+    public function testItReadsABlankOptionalFieldAsUnknown(): void
+    {
+        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+            sources:
+                a-source:
+                    title: A source
+                    access_url: https://example.com/feed.json
+                    crs: EPSG:25832
+                    model: Example
+                    publisher: '   Aarhus Kommune   '
+                    contact: ''
+                    licence: ~
+            YAML));
+
+        $descriptor = $catalog->get('a-source');
+
+        $this->assertSame('Aarhus Kommune', $descriptor->publisher);
+        $this->assertNull($descriptor->contact);
+        $this->assertNull($descriptor->licence);
     }
 
     public function testItReportsAManifestThatIsNotThere(): void
