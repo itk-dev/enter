@@ -6,7 +6,7 @@ namespace App\Tests\Source\MtmSpatialMaps;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
-use App\Source\FeedReader;
+use App\Source\DataSourceReader;
 use App\Source\MtmSpatialMaps\HandicapParking;
 use App\Source\SourceCatalog;
 use App\Source\SourceDescriptor;
@@ -40,7 +40,7 @@ class HandicapParkingTest extends TestCase
             return new MockResponse(json_encode($this->feed(), \JSON_THROW_ON_ERROR));
         });
 
-        $source = new HandicapParking(new FeedReader($client), new Wgs84Transformer(), $catalog);
+        $source = new HandicapParking(new DataSourceReader($client), new Wgs84Transformer(), $catalog);
 
         $this->entities = array_map(
             static fn (NgsiEntity $entity): array => $entity->toArray(['https://example.com/context.jsonld']),

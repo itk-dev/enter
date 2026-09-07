@@ -6,7 +6,7 @@ namespace App\Source\MtmSpatialMaps;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
-use App\Source\FeedReader;
+use App\Source\DataSourceReader;
 use App\Source\SourceCatalog;
 use App\Source\SourceDescriptor;
 use App\Source\SourceInterface;
@@ -22,7 +22,7 @@ final readonly class HandicapParking implements SourceInterface
     private const string KEY = 'mtm_spatialmaps-handicap-parking';
 
     public function __construct(
-        private FeedReader $reader,
+        private DataSourceReader $reader,
         private Wgs84Transformer $transformer,
         private SourceCatalog $catalog,
     ) {

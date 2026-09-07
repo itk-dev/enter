@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Source;
 
-use App\Source\FeedReader;
+use App\Source\DataSourceReader;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
-class FeedReaderTest extends TestCase
+class DataSourceReaderTest extends TestCase
 {
     /**
      * Content-agnostic on purpose: a minimal FeatureCollection with meaningless
@@ -18,9 +18,9 @@ class FeedReaderTest extends TestCase
      */
     private const string FEATURE_COLLECTION = '{"type":"FeatureCollection","features":[{"example":1},{"example":2}]}';
 
-    private function reader(?MockHttpClient $client = null): FeedReader
+    private function reader(?MockHttpClient $client = null): DataSourceReader
     {
-        return new FeedReader($client ?? new MockHttpClient());
+        return new DataSourceReader($client ?? new MockHttpClient());
     }
 
     public function testItReadsFromAnHttpUrl(): void
