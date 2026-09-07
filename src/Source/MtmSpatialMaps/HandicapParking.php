@@ -12,16 +12,7 @@ use App\Source\SourceDescriptor;
 use App\Source\SourceInterface;
 
 /**
- * Disabled parking bays in Aarhus Municipality, exported from SpatialMap.
- *
- * Where the feed is read from, the CRS it publishes and the model it is
- * published as come from this key's manifest entry; this class owns only the
- * field mapping.
- *
- * Published at site level rather than as a ParkingGroup subdivision: the feed
- * describes locations with a count of reserved bays and nothing above them,
- * and ParkingGroup requires a parent site this source does not contain. See
- * ADR 006, and ADR 005 rule 2 for the principle behind it.
+ * Disabled parking bays in Aarhus Municipality
  *
  * @see config/sources.yaml
  * @see https://github.com/smart-data-models/dataModel.Parking/tree/master/OnStreetParking
