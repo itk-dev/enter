@@ -6,72 +6,42 @@ namespace App\Tests\Command;
 
 use App\Broker\NgsiLdBroker;
 use App\Command\ImportCommand;
-use App\Ngsi\NgsiEntity;
+use App\Import\DataSourceImporter;
 use App\Source\SourceInterface;
+use App\Tests\Source\FakeSource;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\HttpClient\MockHttpClient;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
+/**
+ * The console surface only: the affordances around an import, and which exit
+ * code each outcome maps to. What an import decides belongs to
+ * DataSourceImporter and is covered by DataSourceImporterTest.
+ */
 class ImportCommandTest extends TestCase
 {
     /**
      * @param iterable<SourceInterface> $sources
      */
-    private function tester(iterable $sources): CommandTester
+    private function tester(iterable $sources, ?MockHttpClient $client = null): CommandTester
     {
-        return new CommandTester(new ImportCommand(
+        return new CommandTester(new ImportCommand(new DataSourceImporter(
             $sources,
-            new NgsiLdBroker(new MockHttpClient(), 'http://broker.invalid'),
+            new NgsiLdBroker($client ?? new MockHttpClient(), 'http://broker.invalid'),
             'https://example.com/context.jsonld',
-        ));
+        )));
     }
 
-    private function source(string $key, NgsiEntity ...$entities): SourceInterface
+    public function testItListsTheSourcesWhenCalledBare(): void
     {
-        return new readonly class($key, $entities) implements SourceInterface {
-            /** @param list<NgsiEntity> $entities */
-            public function __construct(
-                private string $key,
-                private array $entities,
-            ) {
-            }
+        $tester = $this->tester([FakeSource::withEntities('some-source')]);
 
-            public function key(): string
-            {
-                return $this->key;
-            }
+        $status = $tester->execute([]);
 
-            public function entities(): iterable
-            {
-                yield from $this->entities;
-            }
-        };
-    }
-
-    /**
-     * The important one: a source yielding nothing used to exit successfully
-     * with a warning, which is indistinguishable from a working import.
-     */
-    public function testItFailsWhenASourceProducesNothing(): void
-    {
-        $tester = $this->tester([$this->source('empty-source')]);
-
-        $status = $tester->execute(['source' => 'empty-source', '--dry-run' => true]);
-
-        $this->assertSame(Command::FAILURE, $status);
-        $this->assertStringContainsString('produced no entities', $tester->getDisplay());
-    }
-
-    public function testItSuggestsCausesWhenASourceProducesNothing(): void
-    {
-        $tester = $this->tester([$this->source('empty-source')]);
-        $tester->execute(['source' => 'empty-source', '--dry-run' => true]);
-
-        $display = $tester->getDisplay();
-
-        $this->assertStringContainsString('path or URL', $display);
-        $this->assertStringContainsString('envelope, nesting, field names', $display);
+        $this->assertSame(Command::SUCCESS, $status);
+        $this->assertStringContainsString('some-source', $tester->getDisplay());
     }
 
     public function testItFailsWhenNoSourcesAreRegistered(): void
@@ -90,7 +60,7 @@ class ImportCommandTest extends TestCase
      */
     public function testItRejectsOptionsWithoutASource(): void
     {
-        $tester = $this->tester([$this->source('some-source')]);
+        $tester = $this->tester([FakeSource::withEntities('some-source')]);
 
         $status = $tester->execute(['--dry-run' => true]);
 
@@ -98,19 +68,9 @@ class ImportCommandTest extends TestCase
         $this->assertStringContainsString('No source given', $tester->getDisplay());
     }
 
-    public function testItStillListsSourcesWhenCalledBare(): void
+    public function testAnUnknownSourceIsTheCallersMistake(): void
     {
-        $tester = $this->tester([$this->source('some-source')]);
-
-        $status = $tester->execute([]);
-
-        $this->assertSame(Command::SUCCESS, $status);
-        $this->assertStringContainsString('some-source', $tester->getDisplay());
-    }
-
-    public function testItRejectsAnUnknownSource(): void
-    {
-        $tester = $this->tester([$this->source('some-source')]);
+        $tester = $this->tester([FakeSource::withEntities('some-source')]);
 
         $status = $tester->execute(['source' => 'nope']);
 
@@ -118,12 +78,27 @@ class ImportCommandTest extends TestCase
         $this->assertStringContainsString('Unknown source "nope"', $tester->getDisplay());
     }
 
+    /**
+     * The failure carries no exception to show, so the command has to supply
+     * the places worth looking itself.
+     */
+    public function testAnEmptySourceFailsAndSuggestsCauses(): void
+    {
+        $tester = $this->tester([new FakeSource('empty-source')]);
+
+        $status = $tester->execute(['source' => 'empty-source']);
+        $display = $tester->getDisplay();
+
+        $this->assertSame(Command::FAILURE, $status);
+        $this->assertStringContainsString('produced no entities', $display);
+        $this->assertStringContainsString('path or URL', $display);
+        $this->assertStringContainsString('envelope, nesting, field names', $display);
+    }
+
     public function testDryRunPrintsThePayloadAndSendsNothing(): void
     {
-        $entity = new NgsiEntity('urn:ngsi-ld:Example:1', 'Example')
-            ->setProperty('name', 'Example');
-
-        $tester = $this->tester([$this->source('one-entity', $entity)]);
+        $client = new MockHttpClient();
+        $tester = $this->tester([FakeSource::withEntities('one-entity', 'urn:ngsi-ld:Example:1')], $client);
 
         $status = $tester->execute(['source' => 'one-entity', '--dry-run' => true]);
         $display = $tester->getDisplay();
@@ -131,18 +106,34 @@ class ImportCommandTest extends TestCase
         $this->assertSame(Command::SUCCESS, $status);
         $this->assertStringContainsString('"urn:ngsi-ld:Example:1"', $display);
         $this->assertStringContainsString('1 entities were not sent', $display);
+        $this->assertSame(0, $client->getRequestsCount());
     }
 
-    public function testLimitCapsThePayload(): void
+    public function testItReportsWhatWasUpserted(): void
     {
-        $entities = [];
-        foreach (range(1, 5) as $i) {
-            $entities[] = new NgsiEntity(\sprintf('urn:ngsi-ld:Example:%d', $i), 'Example');
-        }
+        $client = new MockHttpClient(new MockResponse('', ['http_code' => 204]));
+        $tester = $this->tester([FakeSource::withEntities('one-entity', 'urn:ngsi-ld:Example:1')], $client);
 
-        $tester = $this->tester([$this->source('many', ...$entities)]);
-        $tester->execute(['source' => 'many', '--dry-run' => true, '--limit' => 2]);
+        $status = $tester->execute(['source' => 'one-entity']);
+        $display = $tester->getDisplay();
 
-        $this->assertStringContainsString('2 entities were not sent', $tester->getDisplay());
+        $this->assertSame(Command::SUCCESS, $status);
+        $this->assertStringContainsString('Upserted 1 entities', $display);
+        $this->assertStringContainsString('HTTP 204', $display);
+    }
+
+    /**
+     * The broker being down is an operational condition rather than a bug, so
+     * it is reported as a message instead of an uncaught exception.
+     */
+    public function testABrokerFailureIsReportedAsAnError(): void
+    {
+        $client = new MockHttpClient(new MockResponse('', ['http_code' => 500]));
+        $tester = $this->tester([FakeSource::withEntities('one-entity', 'urn:ngsi-ld:Example:1')], $client);
+
+        $status = $tester->execute(['source' => 'one-entity']);
+
+        $this->assertSame(Command::FAILURE, $status);
+        $this->assertStringContainsString('HTTP 500', $tester->getDisplay());
     }
 }
