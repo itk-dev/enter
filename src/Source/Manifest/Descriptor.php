@@ -6,8 +6,7 @@ namespace App\Source\Manifest;
 
 /**
  * Everything about a feed except its field mapping, which belongs to the
- * source class. The names follow DCAT-AP so that publishing the catalogue is a
- * rename rather than a second survey.
+ * source class. The names follow DCAT-AP.
  *
  * @see config/sources.yaml
  * @see docs/adr/007-source-manifest.md
