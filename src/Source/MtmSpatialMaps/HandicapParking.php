@@ -15,7 +15,6 @@ use App\Source\SourceInterface;
  * Disabled parking bays in Aarhus Municipality.
  *
  * @see config/sources.yaml
- * @see https://github.com/smart-data-models/dataModel.Parking/tree/master/OnStreetParking
  */
 final readonly class HandicapParking implements SourceInterface
 {
@@ -48,12 +47,12 @@ final readonly class HandicapParking implements SourceInterface
     }
 
     /**
+     * Maps one feed record onto an NgsiEntity.
+     *
      * @param array<string, mixed> $feature GeoJSON Feature
      */
     private function toEntity(array $feature, Descriptor $source): ?NgsiEntity
     {
-        // A Feature keeps its attributes under `properties` and its geometry
-        // beside them, so neither is at the feature's top level.
         $row = $feature['properties'] ?? null;
         $geometry = $feature['geometry'] ?? null;
 
@@ -74,9 +73,6 @@ final readonly class HandicapParking implements SourceInterface
             $source->model
         );
 
-        // `forDisabled` rather than ParkingGroup's `onlyDisabled`: the two
-        // models have separate category enums, so values are not interchangeable.
-        // `onStreet` is dropped because the entity type already states it.
         return $entity
             ->setProperty('name', $this->address($row))
             ->setProperty('description', trim((string) ($row['bemrk'] ?? '')))

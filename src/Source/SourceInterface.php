@@ -8,12 +8,11 @@ use App\Ngsi\NgsiEntity;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
- * One input data set, converted to NGSI-LD entities.
+ * Converts one input data set into NGSI-LD entities.
  *
- * Implementations own everything specific to their feed: where it comes from,
- * its field names, its quirks, and which Smart Data Model it maps onto. The
- * broker and the import stay unaware of all of it, so adding the next ENTER
- * data set means adding one class and nothing else.
+ * An implementation owns its feed's origin, field names, quirks and target
+ * Smart Data Model. The broker and the import know none of that, so a new
+ * ENTER data set costs exactly one class.
  */
 #[AutoconfigureTag('app.source')]
 interface SourceInterface
