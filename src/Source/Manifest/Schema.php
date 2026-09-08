@@ -10,14 +10,6 @@ use Symfony\Component\Config\Definition\NodeInterface;
 /**
  * The shape of the source manifest, as a Symfony config tree.
  *
- * The tree is rooted at the entries rather than at the file, so a validation
- * error names the path a maintainer sees in the manifest. Each `info()` is
- * suffixed to that error as a hint, which is the moment a field's rationale is
- * needed.
- *
- * Deliberately not a ConfigurationInterface: that is a bundle extension's
- * contract, and this schema describes a committed data file instead.
- *
  * @see config/sources.yaml
  * @see docs/adr/007-source-manifest.md
  */

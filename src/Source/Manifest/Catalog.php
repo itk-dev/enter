@@ -13,11 +13,6 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * The manifest of data sets this application publishes.
  *
- * The record's shape is declared in Schema rather than checked by hand. Parsing
- * is deferred to first use, and Validator reads every record when the
- * application is built, so a malformed entry fails the build instead of waiting
- * for the one import that happens to select it.
- *
  * @see config/sources.yaml
  * @see Schema
  * @see Validator
@@ -101,10 +96,6 @@ final class Catalog
             throw new \RuntimeException(\sprintf('Source manifest "%s" is not valid YAML: %s', $this->manifest, $exception->getMessage()), previous: $exception);
         }
 
-        // The tree is rooted at the entries themselves, so it never sees the
-        // key holding them. Without this the wrong shape yields an empty
-        // catalogue, which reads as "no data sets are registered" rather than
-        // as a broken file.
         $sources = \is_array($parsed) ? $parsed['sources'] ?? null : null;
         if (!\is_array($sources)) {
             throw new \RuntimeException(\sprintf('Source manifest "%s" must contain a "sources" mapping at the top level.', $this->manifest));

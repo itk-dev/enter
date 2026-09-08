@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace App\Source\Manifest;
 
 /**
- * One entry from the source manifest: what a data set is, where it is read
- * from, and on what terms.
- *
  * Everything about a feed except its field mapping, which belongs to the
  * source class. The names follow DCAT-AP so that publishing the catalogue is a
  * rename rather than a second survey.
