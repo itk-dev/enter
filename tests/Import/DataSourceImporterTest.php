@@ -9,8 +9,10 @@ use App\Import\DataSourceImporter;
 use App\Import\Exception\EmptySourceException;
 use App\Import\Exception\UnknownSourceException;
 use App\Import\Exception\UpsertFailedException;
+use App\Source\Manifest\Catalog;
 use App\Source\SourceInterface;
 use App\Tests\Source\FakeSource;
+use App\Tests\Source\Manifest\WritesManifests;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\Exception\TransportException;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -18,20 +20,27 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 
 class DataSourceImporterTest extends TestCase
 {
+    use WritesManifests;
     private const string BROKER_URL = 'http://broker.invalid';
 
-    private const string CONTEXT_URLS = 'https://example.com/domain.jsonld,https://example.com/core.jsonld';
+    private const string CORE_CONTEXT = 'https://example.com/core.jsonld';
 
     /**
-     * @param iterable<SourceInterface> $sources
+     * @param iterable<SourceInterface> $sources each is registered in the manifest under its own key
      */
     private function importer(
         iterable $sources,
         ?MockHttpClient $client = null,
-        string $contextUrls = self::CONTEXT_URLS,
+        string $contextUrls = self::CORE_CONTEXT,
     ): DataSourceImporter {
+        $keys = [];
+        foreach ($sources as $source) {
+            $keys[] = $source->key();
+        }
+
         return new DataSourceImporter(
             $sources,
+            new Catalog($this->manifestFor($keys)),
             new NgsiLdBroker($client ?? new MockHttpClient(), self::BROKER_URL),
             $contextUrls,
         );
@@ -89,16 +98,62 @@ class DataSourceImporterTest extends TestCase
         }
     }
 
-    public function testEveryEntityCarriesTheConfiguredContexts(): void
+    /**
+     * Later entries win term conflicts, so the data set's own context comes
+     * first and the core context last, where it stays authoritative over the
+     * NGSI-LD terms a domain context may also define.
+     */
+    public function testEveryEntityCarriesItsDataSetContextThenTheCoreContext(): void
     {
         $importer = $this->importer([FakeSource::withEntities('one-entity', 'urn:ngsi-ld:Example:1')]);
 
         $payload = $importer->payload('one-entity');
 
         $this->assertSame(
-            ['https://example.com/domain.jsonld', 'https://example.com/core.jsonld'],
+            [self::dataSetContext('one-entity'), self::CORE_CONTEXT],
             $payload[0]['@context']
         );
+    }
+
+    /**
+     * Two data sets published under different models must not advertise each
+     * other's vocabulary, which a single app-wide list cannot avoid.
+     */
+    public function testEachDataSetCarriesOnlyItsOwnContext(): void
+    {
+        $importer = $this->importer([
+            FakeSource::withEntities('first-source', 'urn:ngsi-ld:Example:1'),
+            FakeSource::withEntities('second-source', 'urn:ngsi-ld:Example:2'),
+        ]);
+
+        $this->assertSame(
+            [self::dataSetContext('first-source'), self::CORE_CONTEXT],
+            $importer->payload('first-source')[0]['@context']
+        );
+        $this->assertSame(
+            [self::dataSetContext('second-source'), self::CORE_CONTEXT],
+            $importer->payload('second-source')[0]['@context']
+        );
+    }
+
+    /**
+     * A source registered in the container but not in the manifest has no
+     * context to publish under, so it fails rather than emitting entities a
+     * consumer cannot resolve.
+     */
+    public function testItFailsWhenASourceHasNoManifestEntry(): void
+    {
+        $importer = new DataSourceImporter(
+            [FakeSource::withEntities('unregistered', 'urn:ngsi-ld:Example:1')],
+            new Catalog($this->manifestFor(['other-source'])),
+            new NgsiLdBroker(new MockHttpClient(), self::BROKER_URL),
+            self::CORE_CONTEXT,
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('No entry for source "unregistered"');
+
+        $importer->payload('unregistered');
     }
 
     /**
@@ -109,12 +164,15 @@ class DataSourceImporterTest extends TestCase
     {
         $importer = $this->importer(
             [FakeSource::withEntities('one-entity', 'urn:ngsi-ld:Example:1')],
-            contextUrls: ' https://example.com/domain.jsonld , ,',
+            contextUrls: ' '.self::CORE_CONTEXT.' , ,',
         );
 
         $payload = $importer->payload('one-entity');
 
-        $this->assertSame(['https://example.com/domain.jsonld'], $payload[0]['@context']);
+        $this->assertSame(
+            [self::dataSetContext('one-entity'), self::CORE_CONTEXT],
+            $payload[0]['@context']
+        );
     }
 
     public function testALimitCapsThePayload(): void

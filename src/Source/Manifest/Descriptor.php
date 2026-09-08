@@ -26,6 +26,7 @@ final readonly class Descriptor
         public string $accessUrl,
         public string $crs,
         public string $model,
+        public string $contextUrl,
         public ?string $description = null,
         public ?string $publisher = null,
         public ?string $contact = null,

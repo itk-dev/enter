@@ -55,10 +55,12 @@ class ValidatorTest extends TestCase
                     access_url: https://example.com/feed.json
                     crs: EPSG:25832
                     model: Example
+                    context_url: https://example.com/context.jsonld
                 unreached-source:
                     title: Another source
                     access_url: https://example.com/other.json
                     model: Example
+                    context_url: https://example.com/context.jsonld
             YAML));
 
         $this->expectException(\RuntimeException::class);

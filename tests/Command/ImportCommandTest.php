@@ -7,8 +7,10 @@ namespace App\Tests\Command;
 use App\Broker\NgsiLdBroker;
 use App\Command\ImportCommand;
 use App\Import\DataSourceImporter;
+use App\Source\Manifest\Catalog;
 use App\Source\SourceInterface;
 use App\Tests\Source\FakeSource;
+use App\Tests\Source\Manifest\WritesManifests;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -22,15 +24,23 @@ use Symfony\Component\HttpClient\Response\MockResponse;
  */
 class ImportCommandTest extends TestCase
 {
+    use WritesManifests;
+
     /**
      * @param iterable<SourceInterface> $sources
      */
     private function tester(iterable $sources, ?MockHttpClient $client = null): CommandTester
     {
+        $keys = [];
+        foreach ($sources as $source) {
+            $keys[] = $source->key();
+        }
+
         return new CommandTester(new ImportCommand(new DataSourceImporter(
             $sources,
+            new Catalog($this->manifestFor($keys)),
             new NgsiLdBroker($client ?? new MockHttpClient(), 'http://broker.invalid'),
-            'https://example.com/context.jsonld',
+            'https://example.com/core.jsonld',
         )));
     }
 

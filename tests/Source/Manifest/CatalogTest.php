@@ -43,6 +43,7 @@ class CatalogTest extends TestCase
             $this->assertMatchesRegularExpression('#^https?://#', $descriptor->accessUrl, $key);
             $this->assertMatchesRegularExpression('/^EPSG:\d+$/', $descriptor->crs, $key);
             $this->assertNotSame('', $descriptor->model, $key);
+            $this->assertMatchesRegularExpression('#^https?://#', $descriptor->contextUrl, $key);
         }
     }
 
@@ -55,6 +56,7 @@ class CatalogTest extends TestCase
                     access_url: https://example.com/feed.json
                     crs: EPSG:25832
                     model: Example
+                    context_url: https://example.com/context.jsonld
             YAML));
 
         $this->expectException(\RuntimeException::class);
@@ -81,6 +83,7 @@ class CatalogTest extends TestCase
                     title: A source
                     access_url: https://example.com/feed.json
                     model: Example
+                    context_url: https://example.com/context.jsonld
             YAML));
 
         $this->expectException(\RuntimeException::class);
@@ -98,6 +101,7 @@ class CatalogTest extends TestCase
                     access_url: https://example.com/feed.json
                     crs: EPSG:25832
                     model: Example
+                    context_url: https://example.com/context.jsonld
                     omitted_fields:
                         some_field: ~
             YAML));
@@ -122,6 +126,7 @@ class CatalogTest extends TestCase
                     access_url: https://example.com/feed.json
                     crs: EPSG:25832
                     model: Example
+                    context_url: https://example.com/context.jsonld
             YAML));
 
         $this->assertSame(['handicap-parking'], array_keys($catalog->all()));
@@ -141,6 +146,7 @@ class CatalogTest extends TestCase
                     access_url: https://example.com/feed.json
                     crs: EPSG:25832
                     model: Example
+                    context_url: https://example.com/context.jsonld
                     license: CC-BY-4.0
             YAML));
 
@@ -183,6 +189,7 @@ class CatalogTest extends TestCase
                     access_url: https://example.com/feed.json
                     crs: EPSG:25832
                     model: Example
+                    context_url: https://example.com/context.jsonld
                     publisher: '   Aarhus Kommune   '
                     contact: ''
                     licence: ~

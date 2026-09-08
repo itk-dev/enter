@@ -17,6 +17,7 @@ sources:
         media_type: application/geo+json
         crs: 'EPSG:25832'
         model: OnStreetParking
+        context_url: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld'
         update_frequency: continuous
 
         # The portal states no licence for this data set. DCAT-AP requires

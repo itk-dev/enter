@@ -67,6 +67,7 @@ final class Catalog
                 accessUrl: $entry['access_url'],
                 crs: $entry['crs'],
                 model: $entry['model'],
+                contextUrl: $entry['context_url'],
                 description: $entry['description'],
                 publisher: $entry['publisher'],
                 contact: $entry['contact'],
@@ -82,7 +83,7 @@ final class Catalog
     }
 
     /**
-     * @return array<string, array{title: string, access_url: string, crs: string, model: string, description: string|null, publisher: string|null, contact: string|null, landing_page: string|null, media_type: string|null, update_frequency: string|null, licence: string|null, omitted_fields: array<string, string>}>
+     * @return array<string, array{title: string, access_url: string, crs: string, model: string, context_url: string, description: string|null, publisher: string|null, contact: string|null, landing_page: string|null, media_type: string|null, update_frequency: string|null, licence: string|null, omitted_fields: array<string, string>}>
      */
     private function validated(): array
     {
@@ -102,7 +103,7 @@ final class Catalog
         }
 
         try {
-            /** @var array<string, array{title: string, access_url: string, crs: string, model: string, description: string|null, publisher: string|null, contact: string|null, landing_page: string|null, media_type: string|null, update_frequency: string|null, licence: string|null, omitted_fields: array<string, string>}> $processed */
+            /** @var array<string, array{title: string, access_url: string, crs: string, model: string, context_url: string, description: string|null, publisher: string|null, contact: string|null, landing_page: string|null, media_type: string|null, update_frequency: string|null, licence: string|null, omitted_fields: array<string, string>}> $processed */
             $processed = new Processor()->process(Schema::tree(), [$sources]);
         } catch (InvalidConfigurationException $exception) {
             throw new \RuntimeException(\sprintf('Source manifest "%s" is invalid: %s', $this->manifest, $exception->getMessage()), previous: $exception);
