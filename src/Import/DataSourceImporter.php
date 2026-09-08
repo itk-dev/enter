@@ -105,6 +105,7 @@ final readonly class DataSourceImporter
      * Get list of registered datasets.
      *
      * @see config/sources.yaml
+     *
      * @return array<string, SourceInterface> keyed by source key
      */
     private function registry(): array
@@ -119,8 +120,10 @@ final readonly class DataSourceImporter
     }
 
     /**
-     * Return an array of contexts. Each dataset holds its own context
+     * Return an array of contexts. Each dataset holds its own context.
+     *
      * @see config/sources.yaml
+     *
      * @return array<string>
      */
     private function contexts(string $key): array
