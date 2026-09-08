@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Source;
+namespace App\Source\Manifest;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
-use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\NodeInterface;
 
 /**
  * The shape of the source manifest, as a Symfony config tree.
@@ -15,12 +15,15 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  * suffixed to that error as a hint, which is the moment a field's rationale is
  * needed.
  *
+ * Deliberately not a ConfigurationInterface: that is a bundle extension's
+ * contract, and this schema describes a committed data file instead.
+ *
  * @see config/sources.yaml
  * @see docs/adr/007-source-manifest.md
  */
-final readonly class SourceManifestConfiguration implements ConfigurationInterface
+final readonly class Schema
 {
-    public function getConfigTreeBuilder(): TreeBuilder
+    public static function tree(): NodeInterface
     {
         $tree = new TreeBuilder('sources');
 
@@ -79,7 +82,7 @@ final readonly class SourceManifestConfiguration implements ConfigurationInterfa
                 ->end()
             ->end();
 
-        return $tree;
+        return $tree->buildTree();
     }
 
     /**

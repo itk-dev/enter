@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Source;
+namespace App\Tests\Source\Manifest;
 
-use App\Source\SourceCatalog;
-use App\Source\SourceCatalogWarmer;
+use App\Source\Manifest\Catalog;
+use App\Source\Manifest\Validator;
 use PHPUnit\Framework\TestCase;
 
-class SourceCatalogWarmerTest extends TestCase
+class ValidatorTest extends TestCase
 {
     /** @var list<string> */
     private array $written = [];
@@ -25,28 +25,30 @@ class SourceCatalogWarmerTest extends TestCase
     }
 
     /**
-     * An optional warmer can be skipped, and a manifest that is only read when
-     * an import selects it is exactly what warming exists to avoid.
+     * A check that can be skipped is not a check.
      */
     public function testItIsNotOptional(): void
     {
-        $this->assertFalse($this->warmer(\dirname(__DIR__, 2).'/config/sources.yaml')->isOptional());
-    }
-
-    public function testItWarmsTheShippedManifestWithoutPreloadingAnything(): void
-    {
-        $warmer = $this->warmer(\dirname(__DIR__, 2).'/config/sources.yaml');
-
-        $this->assertSame([], $warmer->warmUp(sys_get_temp_dir(), sys_get_temp_dir()));
+        $this->assertFalse($this->validator(\dirname(__DIR__, 3).'/config/sources.yaml')->isOptional());
     }
 
     /**
-     * The reason for warming at all: an entry no import selects still fails the
-     * build rather than waiting to be discovered.
+     * It validates rather than caches, so it leaves nothing behind to preload.
+     */
+    public function testItAcceptsTheShippedManifestAndWritesNothing(): void
+    {
+        $validator = $this->validator(\dirname(__DIR__, 3).'/config/sources.yaml');
+
+        $this->assertSame([], $validator->warmUp(sys_get_temp_dir(), sys_get_temp_dir()));
+    }
+
+    /**
+     * The reason for checking at build time: an entry no import selects still
+     * fails the build rather than waiting to be discovered.
      */
     public function testItFailsOnAnEntryNoImportWouldReach(): void
     {
-        $warmer = $this->warmer($this->manifest(<<<'YAML'
+        $validator = $this->validator($this->manifest(<<<'YAML'
             sources:
                 a-source:
                     title: A source
@@ -62,12 +64,12 @@ class SourceCatalogWarmerTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('The child config "crs" under "sources.unreached-source" must be configured');
 
-        $warmer->warmUp(sys_get_temp_dir(), sys_get_temp_dir());
+        $validator->warmUp(sys_get_temp_dir(), sys_get_temp_dir());
     }
 
-    private function warmer(string $manifest): SourceCatalogWarmer
+    private function validator(string $manifest): Validator
     {
-        return new SourceCatalogWarmer(new SourceCatalog($manifest));
+        return new Validator(new Catalog($manifest));
     }
 
     private function manifest(string $yaml): string

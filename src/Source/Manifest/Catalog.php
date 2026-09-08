@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Source;
+namespace App\Source\Manifest;
 
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
@@ -13,18 +13,19 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * The manifest of data sets this application publishes.
  *
- * The record's shape is a Symfony config tree rather than hand-written checks,
- * and SourceCatalogWarmer reads the whole manifest during container warm-up, so
- * a malformed entry fails the build instead of waiting for the one import that
- * happens to select it.
+ * The record's shape is declared in Schema rather than checked by hand. Parsing
+ * is deferred to first use, and Validator reads every record when the
+ * application is built, so a malformed entry fails the build instead of waiting
+ * for the one import that happens to select it.
  *
  * @see config/sources.yaml
- * @see SourceManifestConfiguration
+ * @see Schema
+ * @see Validator
  * @see docs/adr/007-source-manifest.md
  */
-final class SourceCatalog
+final class Catalog
 {
-    /** @var array<string, SourceDescriptor>|null */
+    /** @var array<string, Descriptor>|null */
     private ?array $descriptors = null;
 
     public function __construct(
@@ -36,7 +37,7 @@ final class SourceCatalog
     /**
      * @throws \RuntimeException when the manifest cannot be read, or carries no entry for the key
      */
-    public function get(string $key): SourceDescriptor
+    public function get(string $key): Descriptor
     {
         $descriptors = $this->all();
 
@@ -48,7 +49,7 @@ final class SourceCatalog
     }
 
     /**
-     * @return array<string, SourceDescriptor> keyed by source key
+     * @return array<string, Descriptor> keyed by source key
      *
      * @throws \RuntimeException when the manifest cannot be read
      */
@@ -58,14 +59,14 @@ final class SourceCatalog
     }
 
     /**
-     * @return array<string, SourceDescriptor>
+     * @return array<string, Descriptor>
      */
     private function load(): array
     {
         $descriptors = [];
 
         foreach ($this->validated() as $key => $entry) {
-            $descriptors[$key] = new SourceDescriptor(
+            $descriptors[$key] = new Descriptor(
                 key: $key,
                 title: $entry['title'],
                 accessUrl: $entry['access_url'],
@@ -111,7 +112,7 @@ final class SourceCatalog
 
         try {
             /** @var array<string, array{title: string, access_url: string, crs: string, model: string, description: string|null, publisher: string|null, contact: string|null, landing_page: string|null, media_type: string|null, update_frequency: string|null, licence: string|null, omitted_fields: array<string, string>}> $processed */
-            $processed = new Processor()->processConfiguration(new SourceManifestConfiguration(), [$sources]);
+            $processed = new Processor()->process(Schema::tree(), [$sources]);
         } catch (InvalidConfigurationException $exception) {
             throw new \RuntimeException(\sprintf('Source manifest "%s" is invalid: %s', $this->manifest, $exception->getMessage()), previous: $exception);
         }

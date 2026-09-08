@@ -7,8 +7,8 @@ namespace App\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\DataSourceReader;
-use App\Source\SourceCatalog;
-use App\Source\SourceDescriptor;
+use App\Source\Manifest\Catalog;
+use App\Source\Manifest\Descriptor;
 use App\Source\SourceInterface;
 
 /**
@@ -24,7 +24,7 @@ final readonly class HandicapParking implements SourceInterface
     public function __construct(
         private DataSourceReader $reader,
         private Wgs84Transformer $transformer,
-        private SourceCatalog $catalog,
+        private Catalog $catalog,
     ) {
     }
 
@@ -50,7 +50,7 @@ final readonly class HandicapParking implements SourceInterface
     /**
      * @param array<string, mixed> $feature GeoJSON Feature
      */
-    private function toEntity(array $feature, SourceDescriptor $source): ?NgsiEntity
+    private function toEntity(array $feature, Descriptor $source): ?NgsiEntity
     {
         // A Feature keeps its attributes under `properties` and its geometry
         // beside them, so neither is at the feature's top level.

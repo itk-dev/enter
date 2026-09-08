@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Source;
+namespace App\Tests\Source\Manifest;
 
-use App\Source\SourceCatalog;
+use App\Source\Manifest\Catalog;
 use PHPUnit\Framework\TestCase;
 
-class SourceCatalogTest extends TestCase
+class CatalogTest extends TestCase
 {
     /** @var list<string> */
     private array $written = [];
@@ -25,7 +25,7 @@ class SourceCatalogTest extends TestCase
 
     public function testTheShippedManifestIsUsable(): void
     {
-        $catalog = new SourceCatalog(\dirname(__DIR__, 2).'/config/sources.yaml');
+        $catalog = new Catalog(\dirname(__DIR__, 3).'/config/sources.yaml');
 
         $this->assertNotSame([], $catalog->all(), 'The manifest registers no data sets.');
     }
@@ -36,7 +36,7 @@ class SourceCatalogTest extends TestCase
      */
     public function testEveryShippedEntryCanBeImportedFrom(): void
     {
-        $catalog = new SourceCatalog(\dirname(__DIR__, 2).'/config/sources.yaml');
+        $catalog = new Catalog(\dirname(__DIR__, 3).'/config/sources.yaml');
 
         foreach ($catalog->all() as $key => $descriptor) {
             $this->assertSame($key, $descriptor->key);
@@ -48,7 +48,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItNamesTheKnownEntriesWhenAskedForAnUnknownOne(): void
     {
-        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+        $catalog = new Catalog($this->manifest(<<<'YAML'
             sources:
                 a-source:
                     title: A source
@@ -65,7 +65,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItRejectsAManifestWithoutASourcesMapping(): void
     {
-        $catalog = new SourceCatalog($this->manifest("data_sets:\n    a-source: {}\n"));
+        $catalog = new Catalog($this->manifest("data_sets:\n    a-source: {}\n"));
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('must contain a "sources" mapping');
@@ -75,7 +75,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItRejectsAnEntryMissingAFieldTheImportNeeds(): void
     {
-        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+        $catalog = new Catalog($this->manifest(<<<'YAML'
             sources:
                 a-source:
                     title: A source
@@ -91,7 +91,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItRejectsAnOmittedFieldWithoutAReason(): void
     {
-        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+        $catalog = new Catalog($this->manifest(<<<'YAML'
             sources:
                 a-source:
                     title: A source
@@ -115,7 +115,7 @@ class SourceCatalogTest extends TestCase
      */
     public function testItKeepsADashedSourceKeyIntact(): void
     {
-        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+        $catalog = new Catalog($this->manifest(<<<'YAML'
             sources:
                 handicap-parking:
                     title: A source
@@ -134,7 +134,7 @@ class SourceCatalogTest extends TestCase
      */
     public function testItRejectsAFieldTheManifestDoesNotDefine(): void
     {
-        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+        $catalog = new Catalog($this->manifest(<<<'YAML'
             sources:
                 a-source:
                     title: A source
@@ -152,7 +152,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItRejectsAnEntryThatIsNotAMapping(): void
     {
-        $catalog = new SourceCatalog($this->manifest("sources:\n    a-source: just a string\n"));
+        $catalog = new Catalog($this->manifest("sources:\n    a-source: just a string\n"));
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Invalid type for path "sources.a-source"');
@@ -162,7 +162,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItRejectsAManifestThatRegistersNothing(): void
     {
-        $catalog = new SourceCatalog($this->manifest("sources: {}\n"));
+        $catalog = new Catalog($this->manifest("sources: {}\n"));
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('should have at least 1 element');
@@ -176,7 +176,7 @@ class SourceCatalogTest extends TestCase
      */
     public function testItReadsABlankOptionalFieldAsUnknown(): void
     {
-        $catalog = new SourceCatalog($this->manifest(<<<'YAML'
+        $catalog = new Catalog($this->manifest(<<<'YAML'
             sources:
                 a-source:
                     title: A source
@@ -197,7 +197,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItReportsAManifestThatIsNotThere(): void
     {
-        $catalog = new SourceCatalog('/no/such/sources.yaml');
+        $catalog = new Catalog('/no/such/sources.yaml');
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('does not exist');
@@ -207,7 +207,7 @@ class SourceCatalogTest extends TestCase
 
     public function testItReportsUnparsableYaml(): void
     {
-        $catalog = new SourceCatalog($this->manifest("sources:\n  - [unbalanced\n"));
+        $catalog = new Catalog($this->manifest("sources:\n  - [unbalanced\n"));
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('is not valid YAML');

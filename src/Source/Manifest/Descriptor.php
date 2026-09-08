@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Source;
+namespace App\Source\Manifest;
 
 /**
  * One entry from the source manifest: what a data set is, where it is read
@@ -15,7 +15,7 @@ namespace App\Source;
  * @see config/sources.yaml
  * @see docs/adr/007-source-manifest.md
  */
-final readonly class SourceDescriptor
+final readonly class Descriptor
 {
     /**
      * @param string                $key           identifier the import selects this data set by

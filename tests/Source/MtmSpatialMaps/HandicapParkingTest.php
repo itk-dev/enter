@@ -7,9 +7,9 @@ namespace App\Tests\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\DataSourceReader;
+use App\Source\Manifest\Catalog;
+use App\Source\Manifest\Descriptor;
 use App\Source\MtmSpatialMaps\HandicapParking;
-use App\Source\SourceCatalog;
-use App\Source\SourceDescriptor;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -22,7 +22,7 @@ class HandicapParkingTest extends TestCase
 {
     private const string KEY = 'mtm_spatialmaps-handicap-parking';
 
-    private SourceDescriptor $source;
+    private Descriptor $source;
 
     private string $requestedUrl;
 
@@ -31,7 +31,7 @@ class HandicapParkingTest extends TestCase
 
     protected function setUp(): void
     {
-        $catalog = new SourceCatalog(\dirname(__DIR__, 3).'/config/sources.yaml');
+        $catalog = new Catalog(\dirname(__DIR__, 3).'/config/sources.yaml');
         $this->source = $catalog->get(self::KEY);
 
         $client = new MockHttpClient(function (string $method, string $url): MockResponse {
