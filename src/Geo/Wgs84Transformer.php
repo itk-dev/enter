@@ -20,10 +20,6 @@ final class Wgs84Transformer
     /**
      * PROJ definitions for coordinate systems this application reads.
      *
-     * The `towgs84=0,0,0,0,0,0,0` term treats ETRS89 as equivalent to WGS84.
-     * The two datums have diverged by roughly a metre since 1989; see ADR 004
-     * for why that is accepted here.
-     *
      * @var array<string, string>
      */
     private const array DEFINITIONS = [
@@ -58,10 +54,9 @@ final class Wgs84Transformer
     }
 
     /**
-     * Coordinates are not rounded. Downstream use is unknown and may include
-     * planning work, so the transformed value is published as computed.
+     * Coordinates are not rounded.
      *
-     * @param string $srid source CRS, e.g. "EPSG:25832"
+     * @param string $srid source CRS
      *
      * @return array{float, float} GeoJSON coordinate order: [longitude, latitude]
      */
@@ -80,7 +75,7 @@ final class Wgs84Transformer
     }
 
     /**
-     * @param string $srid source CRS, e.g. "EPSG:25832"
+     * @param string $srid source CRS
      *
      * @return array{type: string, coordinates: array{float, float}} GeoJSON Point
      */
@@ -102,7 +97,7 @@ final class Wgs84Transformer
      * A third ordinate (elevation) is dropped: the inputs are two-dimensional,
      * and vertical datums are a separate concern this class does not model.
      *
-     * @param string               $srid     source CRS, e.g. "EPSG:25832"
+     * @param string               $srid     source CRS
      * @param array<string, mixed> $geometry GeoJSON geometry object
      *
      * @return array{type: string, coordinates: mixed}

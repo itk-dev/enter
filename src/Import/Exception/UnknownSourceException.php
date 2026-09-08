@@ -6,9 +6,6 @@ namespace App\Import\Exception;
 
 /**
  * No source is registered under the requested key.
- *
- * Separate from EmptySourceException so a caller can tell a key it can fix
- * from a source that ran and had nothing to show.
  */
 final class UnknownSourceException extends \InvalidArgumentException
 {
