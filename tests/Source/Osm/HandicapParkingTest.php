@@ -6,10 +6,10 @@ namespace App\Tests\Source\Osm;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
-use App\Source\FeedReader;
+use App\Source\DataSourceReader;
+use App\Source\Manifest\Catalog;
+use App\Source\Manifest\Descriptor;
 use App\Source\Osm\HandicapParking;
-use App\Source\SourceCatalog;
-use App\Source\SourceDescriptor;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -22,7 +22,7 @@ class HandicapParkingTest extends TestCase
 {
     private const string KEY = 'osm-handicap-parking';
 
-    private SourceDescriptor $source;
+    private Descriptor $source;
 
     private string $requestedUrl;
 
@@ -31,7 +31,7 @@ class HandicapParkingTest extends TestCase
 
     protected function setUp(): void
     {
-        $catalog = new SourceCatalog(\dirname(__DIR__, 3).'/config/sources.yaml');
+        $catalog = new Catalog(\dirname(__DIR__, 3).'/config/sources.yaml');
         $this->source = $catalog->get(self::KEY);
 
         $client = new MockHttpClient(function (string $method, string $url): MockResponse {
@@ -40,7 +40,7 @@ class HandicapParkingTest extends TestCase
             return new MockResponse(json_encode($this->feed(), \JSON_THROW_ON_ERROR));
         });
 
-        $source = new HandicapParking(new FeedReader($client), new Wgs84Transformer(), $catalog);
+        $source = new HandicapParking(new DataSourceReader($client), new Wgs84Transformer(), $catalog);
 
         $this->entities = array_map(
             static fn (NgsiEntity $entity): array => $entity->toArray(['https://example.com/context.jsonld']),

@@ -6,9 +6,9 @@ namespace App\Source\Osm;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
-use App\Source\FeedReader;
-use App\Source\SourceCatalog;
-use App\Source\SourceDescriptor;
+use App\Source\DataSourceReader;
+use App\Source\Manifest\Catalog;
+use App\Source\Manifest\Descriptor;
 use App\Source\SourceInterface;
 
 /**
@@ -27,9 +27,9 @@ final readonly class HandicapParking implements SourceInterface
     private const string KEY = 'osm-handicap-parking';
 
     public function __construct(
-        private FeedReader $reader,
+        private DataSourceReader $reader,
         private Wgs84Transformer $transformer,
-        private SourceCatalog $catalog,
+        private Catalog $catalog,
     ) {
     }
 
@@ -54,7 +54,7 @@ final readonly class HandicapParking implements SourceInterface
     /**
      * @param array<string, mixed> $element Overpass JSON element
      */
-    private function toEntity(array $element, SourceDescriptor $source): ?NgsiEntity
+    private function toEntity(array $element, Descriptor $source): ?NgsiEntity
     {
         $type = $element['type'] ?? null;
         $id = $element['id'] ?? null;
@@ -78,12 +78,12 @@ final readonly class HandicapParking implements SourceInterface
         );
 
         return $entity
-            ->property('name', trim((string) ($tags['name'] ?? '')))
-            ->property('description', trim((string) ($tags['description'] ?? '')))
-            ->property('category', $this->category($tags))
-            ->property('totalSpotNumber', $this->reservedBays($tags))
-            ->property('source', $source->accessUrl)
-            ->geoProperty('location', $this->transformer->geometry($source->crs, $geometry));
+            ->setProperty('name', trim((string) ($tags['name'] ?? '')))
+            ->setProperty('description', trim((string) ($tags['description'] ?? '')))
+            ->setProperty('category', $this->category($tags))
+            ->setProperty('totalSpotNumber', $this->reservedBays($tags))
+            ->setProperty('source', $source->accessUrl)
+            ->geoProperty('location', $this->transformer->transformGeometry($source->crs, $geometry));
     }
 
     /**
