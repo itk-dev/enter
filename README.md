@@ -30,7 +30,6 @@ source feed (JSON)
 task import                                                # list the available sources
 task import -- mtm_spatialmaps-handicap-parking                        # import one
 task import -- mtm_spatialmaps-handicap-parking --dry-run --limit 5    # print the payload instead
-task broker:entities -- OnStreetParking 10                 # read back what landed
 ```
 
 ### Source manifest
