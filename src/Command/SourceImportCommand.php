@@ -2,7 +2,6 @@
 
 namespace App\Command;
 
-use App\Source\DataSourceReader;
 use App\Source\SourceInterface;
 use App\SourceImporterFactory;
 use Symfony\Component\Console\Attribute\Argument;
@@ -16,7 +15,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class SourceImportCommand
 {
     public function __invoke(SymfonyStyle $io,
-        DataSourceReader $reader,
         SourceImporterFactory $factory,
         #[Argument]
         SourceInterface $source): int
