@@ -43,7 +43,7 @@ class HandicapParkingTest extends TestCase
         $source = new HandicapParking(new DataSourceReader($client), new Wgs84Transformer(), $catalog);
 
         $this->entities = array_map(
-            static fn (NgsiEntity $entity): array => $entity->toArray(['https://example.com/context.jsonld']),
+            static fn (NgsiEntity $entity): array => $entity->toPayload(['https://example.com/context.jsonld']),
             iterator_to_array($source->entities(), false)
         );
     }
