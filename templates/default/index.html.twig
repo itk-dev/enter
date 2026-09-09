@@ -1,61 +1,31 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-    {% for path in ['hundeskov'] %}
-    <a href="{{ path('app_default', {path: path}) }}">{{ path }}</a>
-    {% endfor %}
+    <style>
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+        }
 
-<div id="map">#map</div>
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 
-<!-- https://widget.cdn.septima.dk/latest/examples/data23.html -->
+    <div style="max-width: 560px">
+<div class="video-container">
+    <iframe src="https://www.youtube-nocookie.com/embed/_mHcWWOa3aI?si=T6UN2Y8pe9e8Owdg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
+    </div>
 
-{#
-4.9 NGSI-LD Query Language: https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.9
-4.10 NGSI-LD Geoquery Language: https://cim.etsi.org/NGSI-LD/official/clause-4.html#4.10
-#}
-<ul>
-{% for query in [
-{type: 'handicapparkering'},
-{type: 'hundeskov'},
-{type: 'toilet'},
-{q: 'beskrivelse==Handicaptoilet'},
-
-{
-georel: 'near;maxDistance==20000',
-geometry: 'Point',
-coordinates: [10, 56]|json_encode,
-},
-
-{
-georel: 'near;maxDistance==2000',
-geometry: 'Point',
-coordinates: [10.236808047161853, 56.101226991176155]|json_encode,
-},
-
-{
-georel: 'near;maxDistance==8000',
-geometry: 'Point',
-coordinates: [10.236808047161853, 56.101226991176155]|json_encode,
-},
-
-] %}
-{% set url = path('app_data', {path: 'ngsi-ld/v1/entities', _format: 'geojson'}|merge(query)) %}
-
-{#
-Scorpio  complains about "Bad Request Data." and says "Georelation is not valid" when `==` is URL encoded!
-#}
-{% set url = url|replace({('maxDistance=='|url_encode): 'maxDistance=='}) %}
-
-    <li><a href="{{ url }}">{{ url }}</a></li>
-{% endfor %}
-</ul>
-
-<a href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')) }}">Reset</a>
-<div data-widget-url="{{ path('data_test') }}"></div>
-{# <script src="https://widget.cdn.septima.dk/3.23.0/widgetconfig.js"></script> #}
-{# https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
-<script src="https://widget.cdn.septima.dk/3.19.0/widgetconfig.js"></script>
-
-https://enter.ddev.site:33001/data/ngsi-ld/v1/entities.geojson?georel=near;maxDistance==2000&geometry=Point&coordinates=[8,40]
-
+    {% if 'dev' == app.environment %}
+        <p>You're probably looking for the <a href="{{ path('test_default') }} ">test controller</a>, right?</p>
+    {% endif %}
 {% endblock %}

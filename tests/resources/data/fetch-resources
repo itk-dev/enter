@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -o errexit -o errtrace -o noclobber -o nounset -o pipefail
+IFS=$'\n\t'
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+cd "$script_dir"
+
+urls=(
+    "https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap"
+)
+for url in "${urls[@]}"; do
+    target_file_name="${url##https://}"
+    mkdir -p "$(dirname "$target_file_name")"
+    curl --silent "$url" >| "$target_file_name"
+    echo "$url → $target_file_name"
+done
