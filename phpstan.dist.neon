@@ -5,17 +5,15 @@ parameters:
         - config/
         - public/
         - src/
-        # - tests/
+        - tests/
 
     excludePaths:
         - src/Kernel.php
+        - tests/bootstrap.php
 
     treatPhpDocTypesAsCertain: false
 
     ignoreErrors:
-        - message: '#Access to protected property proj4php\\Point::\$(x|y).#'
-          path: src/Command/BrokerImportGeoJson.php
-
         - messages:
               - "#contains generic class RecursiveArrayIterator but does not specify its types#"
               - '#Call to an undefined method RecursiveIterator::getArrayCopy\(\).#'
