@@ -35,7 +35,7 @@ class DataSourceImporterTest extends TestCase
     ): DataSourceImporter {
         $keys = [];
         foreach ($sources as $source) {
-            $keys[] = $source->key();
+            $keys[] = $source->id;
         }
 
         return new DataSourceImporter(

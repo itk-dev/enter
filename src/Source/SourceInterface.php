@@ -15,15 +15,76 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * ENTER data set costs exactly one class.
  */
 #[AutoconfigureTag('app.source')]
-interface SourceInterface
+interface SourceInterface extends \Stringable, \JsonSerializable
 {
+    public string $id {
+        get;
+    }
+
+    public string $title {
+        get;
+    }
+    public string $description {
+        get;
+    }
+    public string $publisher {
+        get;
+    }
+    public string $contact {
+        get;
+    }
+    public string $landingPage {
+        get;
+    }
+
+    // @todo access_url? What access? Isn't it just a URL?
+    public string $accessUrl {
+        get;
+    }
+
+    public string $mediaType {
+        get;
+    }
+
+    public string $crs {
+        get;
+    }
+
+    public string $model {
+        get;
+    }
+
+    public string $contextUrl {
+        get;
+    }
+
+    public string $updateFrequency {
+        get;
+    }
+
+    public ?string $licence {
+        get;
+    }
+
+    // @todo What does this mean?
+    // Fields the feed carries that are not published. Recorded here because
+    // the source class shows what is mapped but cannot show what was left
+    // out, or why.
     /**
-     * Unique identifier for this source.
+     * @var array<string, string>
      */
-    public function key(): string;
+    public array $omittedFields {
+        get;
+    }
 
     /**
      * @return iterable<NgsiEntity>
      */
+    // We should let the (data) source reader read.
     public function entities(): iterable;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array;
 }

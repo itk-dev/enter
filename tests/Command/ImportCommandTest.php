@@ -33,7 +33,7 @@ class ImportCommandTest extends TestCase
     {
         $keys = [];
         foreach ($sources as $source) {
-            $keys[] = $source->key();
+            $keys[] = $source->id;
         }
 
         return new CommandTester(new ImportCommand(new DataSourceImporter(

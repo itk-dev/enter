@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* [PR-7](https://github.com/itk-dev/enter/pull/7)
+  Refactored source definition
 * [#3](https://github.com/itk-dev/enter/pull/3)
   * Import command that reads a geospatial feed, reprojects it to WGS84 and upserts it to an NGSI-LD broker.
   * A committed record per data set — feed, CRS, model, DCAT-AP metadata.

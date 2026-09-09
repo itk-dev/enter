@@ -113,7 +113,7 @@ final readonly class DataSourceImporter
         $registry = [];
 
         foreach ($this->sources as $source) {
-            $registry[$source->key()] = $source;
+            $registry[$source->id] = $source;
         }
 
         return $registry;

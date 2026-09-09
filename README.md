@@ -32,15 +32,47 @@ task import -- mtm_spatialmaps-handicap-parking                        # import 
 task import -- mtm_spatialmaps-handicap-parking --dry-run --limit 5    # print the payload instead
 ```
 
-### Source manifest
+### Sources
 
-Every data set is recorded in [config/sources.yaml](config/sources.yaml), keyed
-by the identifier `app:import` takes as its argument. See [ADR 007](docs/adr/007-source-manifest.md).
+Adding a data source means adding a [`SourceInterface`](src/Source/SourceInterface.php) implementation. The easiest way
+to do this is by extending [`AbstractSource`](src/Source/AbstractSource.php), e.g.:
 
-Adding a data set means adding one `SourceInterface` implementation and one
-manifest entry. The class is discovered through
-`#[AutoconfigureTag('app.source')]` and shows up as an `app:import` argument
-with no further wiring.
+```php
+<?php
+
+use App\Source\AbstractSource;
+
+final readonly class MySource extends AbstractSource
+{
+    public function __construct(
+    ) {
+        parent::__construct(
+            id: 'my-source',
+            title: 'My source with some cool data',
+            description: '',
+            publisher: 'Me',
+            contact: 'me@example.com',
+            landingPage: 'https://my-data.example.com',
+            accessUrl: 'https://my-data.example.com/data',
+            mediaType: 'application/geo+json',
+            crs: 'EPSG:4326',
+            model: 'MyModel',
+            contextUrl: '',
+            updateFrequency: 'daily',
+        );
+    }
+
+    …
+}
+```
+
+Run
+
+``` shell
+php bin/console app:source:list
+```
+
+list all data sources.
 
 Design decisions are recorded in [docs/adr](docs/adr/README.md).
 

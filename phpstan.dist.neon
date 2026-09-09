@@ -10,6 +10,8 @@ parameters:
     excludePaths:
         - src/Kernel.php
 
+    treatPhpDocTypesAsCertain: false
+
     ignoreErrors:
         - message: '#Access to protected property proj4php\\Point::\$(x|y).#'
           path: src/Command/BrokerImportGeoJson.php
