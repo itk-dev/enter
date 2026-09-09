@@ -78,10 +78,9 @@ interface SourceInterface extends \Stringable, \JsonSerializable
     }
 
     /**
-     * @return iterable<NgsiEntity>
+     * @param array<string, mixed> $data
      */
-    // We should let the (data) source reader read.
-    public function entities(): iterable;
+    public function createNgsiEntity(array $data): ?NgsiEntity;
 
     /**
      * @return array<string, mixed>
