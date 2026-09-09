@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Source\SourceInterface;
-use App\SourceImporterFactory;
+use App\SourceImporter\SourceImporterFactory;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

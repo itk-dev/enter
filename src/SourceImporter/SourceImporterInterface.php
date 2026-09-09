@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\SourceImporter;
 
 use App\Import\ImportResult;
 use App\Source\SourceInterface;
