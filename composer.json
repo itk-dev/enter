@@ -30,17 +30,17 @@
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.52",
-        "friendsofphp/php-cs-fixer": "^3.95.24",
-        "phpstan/phpstan": "^2.2.12",
-        "phpunit/phpunit": "^13.3",
-        "rector/rector": "^2.6",
+        "friendsofphp/php-cs-fixer": "^3.95.25",
+        "phpstan/phpstan": "^2.2.13",
+        "phpunit/phpunit": "^13.3.3",
+        "rector/rector": "^2.6.6",
         "symfony/browser-kit": "~8.1.0",
         "symfony/css-selector": "~8.1.6",
         "symfony/debug-bundle": "~8.1.0",
         "symfony/maker-bundle": "^1.67",
         "symfony/stopwatch": "~8.1.0",
         "symfony/web-profiler-bundle": "~8.1.0",
-        "vincentlanglet/twig-cs-fixer": "^4.1"
+        "vincentlanglet/twig-cs-fixer": "^4.1.1"
     },
     "replace": {
         "symfony/polyfill-ctype": "*",

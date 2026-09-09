@@ -1,15 +1,13 @@
 networks:
     scorpio:
 
-# https://docs.ddev.com/en/stable/users/extend/custom-docker-services/
 services:
     phpfpm:
         image: itkdev/php8.5-fpm:alpine
 
     scorpio:
-        hostname: scorpio.local
         image: scorpiobroker/all-in-one-runner:java-latest
-        restart: "no"
+        restart: unless-stopped
         ports:
             - "9090"
         environment:
@@ -17,20 +15,25 @@ services:
         depends_on:
             - "scorpio-db"
         networks:
-            - app
-            - scorpio
+            app:
+                aliases: [scorpio.local]
+            scorpio:
         platform: "linux/amd64"
 
     scorpio-db:
         image: postgis/postgis
+        restart: unless-stopped
         environment:
             - POSTGRES_USER=ngb
             - POSTGRES_PASSWORD=ngb
             - POSTGRES_DB=ngb
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready --username=ngb --dbname=ngb"]
+            start_period: 10s
+            interval: 5s
+            timeout: 5s
+            retries: 10
         networks:
             - scorpio
         volumes:
             - ./.docker/data/scorpio-db:/var/lib/postgresql/data
-        platform: "linux/amd64"
-        # https://stackoverflow.com/a/58806511
-        command: ["postgres", "-c", "log_statement=all"]

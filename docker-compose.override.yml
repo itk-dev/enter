@@ -6,4 +6,5 @@ services:
     mariadb: !reset
 
     phpfpm:
+        image: itkdev/php8.5-fpm:latest
         depends_on: !reset

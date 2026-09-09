@@ -1,7 +1,6 @@
 networks:
     scorpio:
 
-# https://docs.ddev.com/en/stable/users/extend/custom-docker-services/
 services:
     scorpio:
         image: scorpiobroker/all-in-one-runner:java-latest

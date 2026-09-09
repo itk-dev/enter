@@ -8,17 +8,36 @@ tasks:
     desc: Install site from scratch
     prompt: Really (re)install site?
     cmds:
-      - ddev delete --omit-snapshot --yes
-      - rm -fr .ddev/data/scorpio-db/
+      - if: '[ "$TASK_USE_DDEV" = "true" ]'
+        cmd: |
+          ddev delete --omit-snapshot --yes
+          rm -fr .ddev/data/scorpio-db/
       - task: site:update
 
   site:update:
     desc: Update site
     cmds:
-      - ddev restart
-      - ddev composer install
-      # - ddev console doctrine:migrations:migrate --no-interaction
-      - ddev console cache:clear
+      - if: '[ "$TASK_USE_DDEV" != "true" ]'
+        task: compose
+        vars:
+          TASK_ARGS: pull
+      - if: '[ "$TASK_USE_DDEV" = "true" ]'
+        cmd: ddev restart
+      - task: composer:install
+      # - task: console
+      #   vars:
+      #       TASK_ARGS: doctrine:migrations:migrate --no-interaction
+      - task: console
+        vars:
+          TASK_ARGS: cache:clear
+
+  site:open:
+    desc: Open the site in a browser
+    cmds:
+      - if: '[ "$TASK_USE_DDEV" != "true" ]'
+        cmd: open 'http://enter.local.itkdev.dk/'
+      - if: '[ "$TASK_USE_DDEV" = "true" ]'
+        cmd: ddev launch
 
   test:
     desc: Run all tests
@@ -31,14 +50,20 @@ tasks:
     env:
       APP_ENV: test
     desc: 'Run all {{.TASK | replace "test:" "" }} tests'
-    cmd: ddev php bin/phpunit tests/{{.TASK | replace "test:" "" | title }}
+    cmd:
+      task: php
+      vars:
+        TASK_ARGS: bin/phpunit tests/{{.TASK | replace "test:" "" | title }}
 
   test:integration: *test_task
   test:application: *test_task
 
   import:
-    desc: 'Import a source into the broker, e.g. task import -- mtm_spatialmaps-handicap-parking'
-    cmd: ddev console app:import {{.CLI_ARGS}}
+    desc: 'Import a source into the broker, e.g. `task {{.TASK}} -- mtm_spatialmaps-handicap-parking`'
+    cmd:
+      task: console
+      vars:
+        TASK_ARGS: app:import
 
   coding-standards:apply:
     desc: 'Apply coding standards'
@@ -114,26 +139,38 @@ tasks:
   coding-standards:php:apply:
     desc: 'Apply coding standards for PHP'
     cmds:
-      - ddev php vendor/bin/rector
-      - ddev php vendor/bin/php-cs-fixer fix
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/rector
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/php-cs-fixer fix
 
   coding-standards:php:check:
     desc: 'Apply and check coding standards for PHP'
     cmds:
       - task: coding-standards:php:apply
-      - ddev php vendor/bin/rector --dry-run
-      - ddev php vendor/bin/php-cs-fixer check
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/rector --dry-run
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/php-cs-fixer check
 
   coding-standards:twig:apply:
     desc: 'Apply coding standards for Twig'
     cmds:
-      - ddev php vendor/bin/twig-cs-fixer fix
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/twig-cs-fixer fix
 
   coding-standards:twig:check:
     desc: 'Apply and check coding standards for Twig'
     cmds:
       - task: coding-standards:twig:apply
-      - ddev php vendor/bin/twig-cs-fixer check
+      - task: php
+        vars:
+          TASK_ARGS: vendor/bin/twig-cs-fixer check
 
   coding-standards:yaml:apply:
     desc: 'Apply coding standards for YAML'
@@ -172,9 +209,39 @@ tasks:
 
   composer:
     internal: true
-    task: compose
-    vars:
-      TASK_ARGS: run --rm --no-deps phpfpm composer
+    cmd:
+      task: compose
+      vars:
+        TASK_ARGS: run --rm --no-deps phpfpm composer {{.TASK_ARGS}}
+
+  composer:install:
+    internal: true
+    cmds:
+      - if: '[ "$APP_ENV" != "prod" ]'
+        task: composer
+        vars:
+          TASK_ARGS: install
+      - if: '[ "$APP_ENV" = "prod" ]'
+        task: composer
+        vars:
+          TASK_ARGS: install --no-dev --classmap-authoritative
+
+  console:
+    internal: true
+    cmd:
+      task: php
+      vars:
+        TASK_ARGS: bin/console {{.TASK_ARGS}}
+
+  php:
+    internal: true
+    cmds:
+      - if: '[ "$TASK_USE_DDEV" != "true" ]'
+        task: compose
+        vars:
+          TASK_ARGS: exec phpfpm php {{.TASK_ARGS}}
+      - if: '[ "$TASK_USE_DDEV" = "true" ]'
+        cmd: ddev php {{.TASK_ARGS}}
 
   default:
     cmds:
