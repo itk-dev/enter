@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\SourceReader;
 
 use App\Source\SourceInterface;
 use Psr\Log\LoggerAwareTrait;

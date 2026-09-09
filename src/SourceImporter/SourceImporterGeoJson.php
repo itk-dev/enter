@@ -1,12 +1,13 @@
 <?php
 
-namespace App;
+namespace App\SourceImporter;
 
 use App\Broker\NgsiLdBroker;
 use App\Import\Exception\UpsertFailedException;
 use App\Import\ImportResult;
 use App\Ngsi\NgsiEntity;
 use App\Source\SourceInterface;
+use App\SourceReader\SourceReaderGeoJson;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LoggerTrait;

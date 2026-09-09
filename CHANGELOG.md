@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* [PR-9](https://github.com/itk-dev/enter/pull/9)
+  Refactored source import
 * [PR-7](https://github.com/itk-dev/enter/pull/7)
   Refactored source definition
 * [#3](https://github.com/itk-dev/enter/pull/3)
