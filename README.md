@@ -51,5 +51,12 @@ Design decisions are recorded in [docs/adr](docs/adr/README.md).
 A [Scorpio Broker](https://scorpio.readthedocs.io/) is part of the development setup.
 
 ``` shell
-ddev exec "curl --silent http://scorpio.local:9090/ngsi-ld/v1/types | jq"
+docker compose exec phpfpm curl --silent http://scorpio.local:9090/ngsi-ld/v1/types | jq
+```
+
+If you're using the [ITK-dev docker setup](https://github.com/itk-dev/devops_itkdev-docker/), the broker can also be
+accessed on <http://scorpio.enter.local.itkdev.dk/>, e.g.
+
+``` php
+curl --silent http://scorpio.enter.local.itkdev.dk/ngsi-ld/v1/types | jq
 ```

@@ -1,0 +1,9 @@
+include:
+    - docker-compose.scorpio.yml
+
+services:
+    # We don't (yet?) need a database.
+    mariadb: !reset
+
+    phpfpm:
+        depends_on: !reset
