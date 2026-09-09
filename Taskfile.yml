@@ -36,6 +36,10 @@ tasks:
   test:integration: *test_task
   test:application: *test_task
 
+  import:
+    desc: 'Import a source into the broker, e.g. task import -- mtm_spatialmaps-handicap-parking'
+    cmd: ddev console app:import {{.CLI_ARGS}}
+
   coding-standards:apply:
     desc: 'Apply coding standards'
     cmds:
