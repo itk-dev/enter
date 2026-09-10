@@ -42,7 +42,6 @@ tasks:
 
   scorpio:psql:
     desc: 'Enter the broker database, e.g. task scorpio:psql -- -c ''\dt'''
-    # scorpio-db publishes no ports, so exec into the container instead of TCP.
     cmd: docker exec -it ddev-enter-scorpio-db psql -U ngb -d ngb {{.CLI_ARGS}}
 
   coding-standards:apply:
