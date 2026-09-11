@@ -7,16 +7,19 @@ namespace App\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
+use App\Source\Definition;
 
 /**
  * Disabled parking bays in Aarhus Municipality.
  */
 final readonly class HandicapParking extends AbstractSource
 {
+    public Definition $definition;
+
     public function __construct(
         private Wgs84Transformer $transformer,
     ) {
-        parent::__construct(
+        $this->definition = new Definition(
             id: 'mtm_spatialmaps-handicap-parking',
             title: 'Handicapparkering, Aarhus Kommune',
             description: 'Disabled parking bays in Aarhus Municipality, with the number of reserved bays per location.',
@@ -29,6 +32,7 @@ final readonly class HandicapParking extends AbstractSource
             model: 'OnStreetParking',
             contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
             updateFrequency: 'continuous',
+            licence: null,
 
             omittedFields: [
                 'ident' => 'Single-letter code; its meaning is not documented and not confirmed by the data owner.',
@@ -64,8 +68,8 @@ final readonly class HandicapParking extends AbstractSource
         }
 
         $entity = new NgsiEntity(
-            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-%s', $this->model, $key),
-            $this->model
+            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-%s', $this->definition->model, $key),
+            $this->definition->model
         );
 
         return $entity
@@ -73,8 +77,8 @@ final readonly class HandicapParking extends AbstractSource
             ->setProperty('description', trim((string) ($row['bemrk'] ?? '')))
             ->setProperty('category', ['forDisabled'])
             ->setProperty('totalSpotNumber', (int) ($row['invalidepladser'] ?? 0))
-            ->setProperty('source', $this->accessUrl)
-            ->geoProperty('location', $this->transformer->transformGeometry($this->crs, $geometry));
+            ->setProperty('source', $this->definition->accessUrl)
+            ->geoProperty('location', $this->transformer->transformGeometry($this->definition->crs, $geometry));
     }
 
     /**

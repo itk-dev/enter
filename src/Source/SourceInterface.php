@@ -17,63 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag('app.source')]
 interface SourceInterface extends \Stringable, \JsonSerializable
 {
-    public string $id {
-        get;
-    }
-
-    public string $title {
-        get;
-    }
-    public string $description {
-        get;
-    }
-    public string $publisher {
-        get;
-    }
-    public string $contact {
-        get;
-    }
-    public string $landingPage {
-        get;
-    }
-
-    // @todo access_url? What access? Isn't it just a URL?
-    public string $accessUrl {
-        get;
-    }
-
-    public string $mediaType {
-        get;
-    }
-
-    public string $crs {
-        get;
-    }
-
-    public string $model {
-        get;
-    }
-
-    public string $contextUrl {
-        get;
-    }
-
-    public string $updateFrequency {
-        get;
-    }
-
-    public ?string $licence {
-        get;
-    }
-
-    // @todo What does this mean?
-    // Fields the feed carries that are not published. Recorded here because
-    // the source class shows what is mapped but cannot show what was left
-    // out, or why.
-    /**
-     * @var array<string, string>
-     */
-    public array $omittedFields {
+    public Definition $definition {
         get;
     }
 

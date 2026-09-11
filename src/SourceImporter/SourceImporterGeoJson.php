@@ -46,7 +46,7 @@ class SourceImporterGeoJson implements SourceImporterInterface
     {
         $this->info('Processing source {source}', ['source' => $source->__toString()]);
 
-        $contextUrls = array_merge([$source->contextUrl], $this->contextUrls);
+        $contextUrls = array_merge([$source->definition->contextUrl], $this->contextUrls);
         $payload = [];
         foreach ($this->read($source) as $entity) {
             $this->info('Building payload for {entity}', ['entity' => $entity->id()]);
