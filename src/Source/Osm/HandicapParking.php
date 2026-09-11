@@ -10,14 +10,7 @@ use App\Source\AbstractSource;
 use App\Source\Definition;
 
 /**
- * Disabled parking in Aarhus Municipality, as mapped in OpenStreetMap.
- *
- * The feed carries two kinds of record: single reserved bays
- * (parking_space=disabled) and parking facilities that reserve bays
- * (capacity:disabled). Both are published as one entity with the number of
- * reserved bays, so the distinction only matters for how that number is read.
- *
- * @see https://github.com/smart-data-models/dataModel.Parking/tree/master/OnStreetParking
+ * Disabled parking bays in Aarhus Municipality.
  */
 final readonly class HandicapParking extends AbstractSource
 {
@@ -29,11 +22,8 @@ final readonly class HandicapParking extends AbstractSource
         $this->definition = new Definition(
             id: 'osm-handicap-parking',
             title: 'Handicapparkering (OpenStreetMap), Aarhus Kommune',
-            description: 'Disabled parking mapped in OpenStreetMap within Aarhus Municipality: single reserved bays, and parking facilities that state how many of their bays are reserved. Read via the Overpass API.',
+            description: 'Disabled parking mapped in OpenStreetMap within Aarhus Municipality: single reserved bays, and parking facilities that state how many of their bays are reserved.',
             publisher: 'OpenStreetMap contributors',
-
-            // Community-maintained data, so no one owner answers for it; the
-            // forum is where a question about a record is raised.
             contact: 'https://community.openstreetmap.org/',
             landingPage: 'https://wiki.openstreetmap.org/wiki/Tag:parking_space%3Ddisabled',
 
@@ -47,16 +37,8 @@ final readonly class HandicapParking extends AbstractSource
             model: 'OnStreetParking',
             contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
             updateFrequency: 'continuous',
-
-            // Republication must attribute "© OpenStreetMap contributors" and
-            // share under the same licence.
             licence: 'https://opendatacommons.org/licenses/odbl/1-0/',
 
-            // OpenStreetMap tagging is open-ended, so unlike a fixed-schema
-            // feed this cannot list everything an element may carry. These are
-            // the recurring tags in the current extract that are not
-            // published; coverage figures count records carrying the tag in
-            // the September 2026 extract.
             omittedFields: [
                 'amenity' => 'Selector distinguishing a single bay (parking_space) from a facility (parking); the model carries no such distinction.',
                 'capacity' => 'Published for single bays only; on a facility it counts all bays and would overstate the reserved capacity.',
