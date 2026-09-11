@@ -2,38 +2,35 @@ networks:
     scorpio:
 
 services:
-    phpfpm:
-        image: itkdev/php8.5-fpm:alpine
-
     scorpio:
         image: scorpiobroker/all-in-one-runner:java-latest
-        restart: unless-stopped
+        restart: "no"
         ports:
             - "9090"
         environment:
+            - HTTP_EXPOSE=9090:9999
             - DBHOST=scorpio-db
         depends_on:
             - "scorpio-db"
         networks:
+            frontend:
             app:
                 aliases: [scorpio.local]
             scorpio:
         platform: "linux/amd64"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=frontend"
+            - "traefik.http.routers.scorpio_${COMPOSE_PROJECT_NAME:?}.rule=Host(`scorpio.${COMPOSE_DOMAIN:?}`)"
 
     scorpio-db:
         image: postgis/postgis
-        restart: unless-stopped
         environment:
             - POSTGRES_USER=ngb
             - POSTGRES_PASSWORD=ngb
             - POSTGRES_DB=ngb
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready --username=ngb --dbname=ngb"]
-            start_period: 10s
-            interval: 5s
-            timeout: 5s
-            retries: 10
         networks:
             - scorpio
-        volumes:
-            - ./.docker/data/scorpio-db:/var/lib/postgresql/data
+        platform: "linux/amd64"
+        # https://stackoverflow.com/a/58806511
+        command: ["postgres", "-c", "log_statement=all"]
