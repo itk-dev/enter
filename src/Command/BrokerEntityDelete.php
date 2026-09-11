@@ -9,7 +9,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Contracts\HttpClient\ResponseInterface;
 
 #[AsCommand(
     name: 'app:broker:entity:delete',
@@ -72,24 +71,5 @@ class BrokerEntityDelete
         }
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * Get link URL.
-     *
-     * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link
-     */
-    private function getLinkUrl(ResponseInterface $response, string $rel): ?string
-    {
-        $links = $response->getHeaders()['link'] ?? [];
-        foreach ($links as $link) {
-            if (preg_match_all('/<(?P<url>[^>]+)>;\s*rel="(?P<rel>[^"]+)"/', (string) $link, $matches, PREG_SET_ORDER)) {
-                if ($rel === ($matches[0]['rel'] ?? null)) {
-                    return $matches[0]['url'] ?? null;
-                }
-            }
-        }
-
-        return null;
     }
 }

@@ -7,21 +7,14 @@ namespace App\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
-use App\Source\DataSourceReader;
-use App\Source\Manifest\Catalog;
-use App\Source\Manifest\Descriptor;
 
 /**
  * Disabled parking bays in Aarhus Municipality.
  */
 final readonly class HandicapParking extends AbstractSource
 {
-    private const string KEY = 'mtm_spatialmaps-handicap-parking';
-
     public function __construct(
-        private DataSourceReader $reader,
         private Wgs84Transformer $transformer,
-        private Catalog $catalog,
     ) {
         parent::__construct(
             id: 'mtm_spatialmaps-handicap-parking',
@@ -48,29 +41,15 @@ final readonly class HandicapParking extends AbstractSource
         );
     }
 
-    public function entities(): iterable
-    {
-        $source = $this->catalog->get(self::KEY);
-
-        // The export is a GeoJSON FeatureCollection, so the records live under
-        // `features`. Iterating the document itself would walk its two
-        // top-level keys instead.
-        foreach ($this->reader->read($source->accessUrl)['features'] ?? [] as $feature) {
-            if (\is_array($feature) && null !== $entity = $this->toEntity($feature, $source)) {
-                yield $entity;
-            }
-        }
-    }
-
     /**
      * Maps one feed record onto an NgsiEntity.
      *
-     * @param array<string, mixed> $feature GeoJSON Feature
+     * @param array<string, mixed> $data GeoJSON Feature
      */
-    private function toEntity(array $feature, Descriptor $source): ?NgsiEntity
+    public function createNgsiEntity(array $data): ?NgsiEntity
     {
-        $row = $feature['properties'] ?? null;
-        $geometry = $feature['geometry'] ?? null;
+        $row = $data['properties'] ?? null;
+        $geometry = $data['geometry'] ?? null;
 
         if (!\is_array($row) || !\is_array($geometry)) {
             return null;
@@ -85,8 +64,8 @@ final readonly class HandicapParking extends AbstractSource
         }
 
         $entity = new NgsiEntity(
-            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-%s', $source->model, $key),
-            $source->model
+            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-%s', $this->model, $key),
+            $this->model
         );
 
         return $entity
@@ -94,8 +73,8 @@ final readonly class HandicapParking extends AbstractSource
             ->setProperty('description', trim((string) ($row['bemrk'] ?? '')))
             ->setProperty('category', ['forDisabled'])
             ->setProperty('totalSpotNumber', (int) ($row['invalidepladser'] ?? 0))
-            ->setProperty('source', $source->accessUrl)
-            ->geoProperty('location', $this->transformer->transformGeometry($source->crs, $geometry));
+            ->setProperty('source', $this->accessUrl)
+            ->geoProperty('location', $this->transformer->transformGeometry($this->crs, $geometry));
     }
 
     /**

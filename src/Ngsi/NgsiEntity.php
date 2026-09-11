@@ -69,7 +69,7 @@ final class NgsiEntity
      *
      * @return array<string, mixed>
      */
-    public function toArray(array $contextUrls): array
+    public function toPayload(array $contextUrls): array
     {
         return [
             'id' => $this->id,
