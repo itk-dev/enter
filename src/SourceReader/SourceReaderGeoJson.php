@@ -20,7 +20,7 @@ class SourceReaderGeoJson implements SourceReaderInterface
     public function read(SourceInterface $source): iterable
     {
         // @todo Add some proper exception handling/logging.
-        $data = $this->getData($source->accessUrl);
+        $data = $this->getData($source->definition->accessUrl);
 
         $features = $data['features'];
 

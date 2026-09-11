@@ -37,7 +37,7 @@ final class SourceManager
                 if (!$source instanceof SourceInterface) {
                     throw new \InvalidArgumentException(sprintf('Invalid source class: %s (must extend %s)', $source::class, AbstractSource::class));
                 }
-                $id = $source->id;
+                $id = $source->definition->id;
                 if (isset($sources[$id])) {
                     throw new \RuntimeException(sprintf('Duplicate source: %s (ID already used by %s)', $id, $sources[$id]::class));
                 }
