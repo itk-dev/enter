@@ -6,51 +6,31 @@ namespace App\Tests\Source\Osm;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
-use App\Source\DataSourceReader;
-use App\Source\Manifest\Catalog;
-use App\Source\Manifest\Descriptor;
 use App\Source\Osm\HandicapParking;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpClient\MockHttpClient;
-use Symfony\Component\HttpClient\Response\MockResponse;
 
 /**
- * Runs against the manifest the project ships, not a fixture of one, so the
- * entry this source depends on is covered too. Only the feed is mocked.
+ * Covers the mapping only. Reading the feed is the reader's job and is
+ * covered by App\Tests\SourceReader\SourceReaderOverpassTest.
  */
 class HandicapParkingTest extends TestCase
 {
-    private const string KEY = 'osm-handicap-parking';
-
-    private Descriptor $source;
-
-    private string $requestedUrl;
+    private HandicapParking $source;
 
     /** @var list<array<string, mixed>> */
     private array $entities;
 
     protected function setUp(): void
     {
-        $catalog = new Catalog(\dirname(__DIR__, 3).'/config/sources.yaml');
-        $this->source = $catalog->get(self::KEY);
+        $this->source = new HandicapParking(new Wgs84Transformer());
 
-        $client = new MockHttpClient(function (string $method, string $url): MockResponse {
-            $this->requestedUrl = $url;
-
-            return new MockResponse(json_encode($this->feed(), \JSON_THROW_ON_ERROR));
-        });
-
-        $source = new HandicapParking(new DataSourceReader($client), new Wgs84Transformer(), $catalog);
-
-        $this->entities = array_map(
-            static fn (NgsiEntity $entity): array => $entity->toArray(['https://example.com/context.jsonld']),
-            iterator_to_array($source->entities(), false)
-        );
-    }
-
-    public function testItReadsTheFeedTheManifestPointsAt(): void
-    {
-        $this->assertSame($this->source->accessUrl, $this->requestedUrl);
+        $this->entities = array_values(array_map(
+            static fn (NgsiEntity $entity): array => $entity->toPayload(['https://example.com/context.jsonld']),
+            array_filter(array_map(
+                $this->source->createNgsiEntity(...),
+                $this->elements()
+            ))
+        ));
     }
 
     public function testItSkipsRecordsWithoutAnIdentifierOrGeometry(): void
@@ -65,23 +45,23 @@ class HandicapParkingTest extends TestCase
         // the identifier; the osm marker keeps it clear of other data sets'
         // aarhus-handicap ids.
         $this->assertSame(
-            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-osm-node-3580886094', $this->source->model),
+            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-osm-node-3580886094', $this->source->definition->model),
             $this->entities[0]['id']
         );
         $this->assertSame(
-            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-osm-way-384028175', $this->source->model),
+            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-osm-way-384028175', $this->source->definition->model),
             $this->entities[2]['id']
         );
         $this->assertSame(
-            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-osm-relation-17151325', $this->source->model),
+            \sprintf('urn:ngsi-ld:%s:aarhus-handicap-osm-relation-17151325', $this->source->definition->model),
             $this->entities[4]['id']
         );
     }
 
-    public function testItTakesTheTypeFromTheManifestModel(): void
+    public function testItTakesTheTypeFromTheSourceModel(): void
     {
         foreach ($this->entities as $entity) {
-            $this->assertSame($this->source->model, $entity['type']);
+            $this->assertSame($this->source->definition->model, $entity['type']);
         }
     }
 
@@ -193,9 +173,9 @@ class HandicapParkingTest extends TestCase
         $this->assertEqualsWithDelta(56.08875175, $geometry['coordinates'][1], 1e-9);
     }
 
-    public function testItRecordsTheManifestUrlAsTheEntitySource(): void
+    public function testItRecordsTheAccessUrlAsTheEntitySource(): void
     {
-        $this->assertSame($this->source->accessUrl, $this->entities[0]['source']['value']);
+        $this->assertSame($this->source->definition->accessUrl, $this->entities[0]['source']['value']);
     }
 
     /**
@@ -206,133 +186,124 @@ class HandicapParkingTest extends TestCase
      * the untagged capacity default, capacity:disabled=yes, an unrecognised
      * fee value and the two guards that discard a record.
      *
-     * @return array<string, mixed>
+     * @return list<array<string, mixed>>
      */
-    private function feed(): array
+    private function elements(): array
     {
         return [
-            'version' => 0.6,
-            'generator' => 'Overpass API 0.7.62.11 87bfad18',
-            'osm3s' => [
-                'timestamp_osm_base' => '2026-09-07T09:01:36Z',
-                'timestamp_areas_base' => '2026-09-06T23:47:02Z',
-                'copyright' => 'The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.',
+            [
+                'type' => 'node',
+                'id' => 3580886094,
+                'lat' => 56.1540563,
+                'lon' => 10.2141175,
+                'tags' => [
+                    'access' => 'yes',
+                    'amenity' => 'parking',
+                    'capacity:disabled' => '4',
+                    'fee' => 'yes',
+                    'parking' => 'surface',
+                ],
             ],
-            'elements' => [
-                [
-                    'type' => 'node',
-                    'id' => 3580886094,
-                    'lat' => 56.1540563,
-                    'lon' => 10.2141175,
-                    'tags' => [
-                        'access' => 'yes',
-                        'amenity' => 'parking',
-                        'capacity:disabled' => '4',
-                        'fee' => 'yes',
-                        'parking' => 'surface',
-                    ],
+            [
+                'type' => 'node',
+                'id' => 12368170867,
+                'lat' => 56.1676256,
+                'lon' => 10.2255202,
+                'tags' => [
+                    'amenity' => 'parking',
+                    'brand' => 'Q-Park',
+                    'brand:wikidata' => 'Q1127798',
+                    'capacity' => '299',
+                    'capacity:disabled' => '3',
+                    'fee' => 'yes',
+                    'layer' => '-1',
+                    'name' => 'Q-Park SHIP',
+                    'operator' => 'Q-Park',
+                    'operator:type' => 'private',
+                    'operator:wikidata' => 'Q1127798',
+                    'parking' => 'underground',
                 ],
-                [
-                    'type' => 'node',
-                    'id' => 12368170867,
-                    'lat' => 56.1676256,
-                    'lon' => 10.2255202,
-                    'tags' => [
-                        'amenity' => 'parking',
-                        'brand' => 'Q-Park',
-                        'brand:wikidata' => 'Q1127798',
-                        'capacity' => '299',
-                        'capacity:disabled' => '3',
-                        'fee' => 'yes',
-                        'layer' => '-1',
-                        'name' => 'Q-Park SHIP',
-                        'operator' => 'Q-Park',
-                        'operator:type' => 'private',
-                        'operator:wikidata' => 'Q1127798',
-                        'parking' => 'underground',
-                    ],
+            ],
+            [
+                'type' => 'way',
+                'id' => 384028175,
+                'bounds' => ['minlat' => 56.1572328, 'minlon' => 10.2101549, 'maxlat' => 56.1572932, 'maxlon' => 10.2102509],
+                'geometry' => [
+                    ['lat' => 56.1572442, 'lon' => 10.2101549],
+                    ['lat' => 56.1572328, 'lon' => 10.2102254],
+                    ['lat' => 56.1572819, 'lon' => 10.2102509],
+                    ['lat' => 56.1572932, 'lon' => 10.2101805],
+                    ['lat' => 56.1572442, 'lon' => 10.2101549],
                 ],
-                [
-                    'type' => 'way',
-                    'id' => 384028175,
-                    'bounds' => ['minlat' => 56.1572328, 'minlon' => 10.2101549, 'maxlat' => 56.1572932, 'maxlon' => 10.2102509],
-                    'geometry' => [
-                        ['lat' => 56.1572442, 'lon' => 10.2101549],
-                        ['lat' => 56.1572328, 'lon' => 10.2102254],
-                        ['lat' => 56.1572819, 'lon' => 10.2102509],
-                        ['lat' => 56.1572932, 'lon' => 10.2101805],
-                        ['lat' => 56.1572442, 'lon' => 10.2101549],
-                    ],
-                    'tags' => [
-                        'amenity' => 'parking_space',
-                        'capacity' => '1',
-                        'parking_space' => 'disabled',
-                    ],
+                'tags' => [
+                    'amenity' => 'parking_space',
+                    'capacity' => '1',
+                    'parking_space' => 'disabled',
                 ],
-                [
-                    'type' => 'way',
-                    'id' => 1180544298,
-                    'bounds' => ['minlat' => 56.1832145, 'minlon' => 10.1061762, 'maxlat' => 56.1832532, 'maxlon' => 10.1063419],
-                    'geometry' => [
-                        ['lat' => 56.1832145, 'lon' => 10.1061762],
-                        ['lat' => 56.1832532, 'lon' => 10.1061762],
-                    ],
-                    'tags' => [
-                        'amenity' => 'parking_space',
-                        'capacity' => '3',
-                        'parking_space' => 'disabled',
-                    ],
+            ],
+            [
+                'type' => 'way',
+                'id' => 1180544298,
+                'bounds' => ['minlat' => 56.1832145, 'minlon' => 10.1061762, 'maxlat' => 56.1832532, 'maxlon' => 10.1063419],
+                'geometry' => [
+                    ['lat' => 56.1832145, 'lon' => 10.1061762],
+                    ['lat' => 56.1832532, 'lon' => 10.1061762],
                 ],
-                [
-                    'type' => 'relation',
-                    'id' => 17151325,
-                    'bounds' => ['minlat' => 56.0886708, 'minlon' => 10.2477857, 'maxlat' => 56.0888327, 'maxlon' => 10.2480758],
-                    'tags' => [
-                        'access' => 'yes',
-                        'amenity' => 'parking',
-                        'capacity' => '11',
-                        'capacity:disabled' => '1',
-                        'fee' => 'no',
-                        'orientation' => 'perpendicular',
-                        'parking' => 'street_side',
-                        'surface' => 'asphalt',
-                        'type' => 'multipolygon',
-                    ],
+                'tags' => [
+                    'amenity' => 'parking_space',
+                    'capacity' => '3',
+                    'parking_space' => 'disabled',
                 ],
-                [
-                    'type' => 'node',
-                    'id' => 101,
-                    'lat' => 56.15,
-                    'lon' => 10.21,
-                    'tags' => [
-                        'amenity' => 'parking',
-                        'capacity' => '36',
-                        'capacity:disabled' => 'yes',
-                    ],
+            ],
+            [
+                'type' => 'relation',
+                'id' => 17151325,
+                'bounds' => ['minlat' => 56.0886708, 'minlon' => 10.2477857, 'maxlat' => 56.0888327, 'maxlon' => 10.2480758],
+                'tags' => [
+                    'access' => 'yes',
+                    'amenity' => 'parking',
+                    'capacity' => '11',
+                    'capacity:disabled' => '1',
+                    'fee' => 'no',
+                    'orientation' => 'perpendicular',
+                    'parking' => 'street_side',
+                    'surface' => 'asphalt',
+                    'type' => 'multipolygon',
                 ],
-                [
-                    'type' => 'node',
-                    'id' => 102,
-                    'lat' => 56.16,
-                    'lon' => 10.22,
-                    'tags' => [
-                        'amenity' => 'parking_space',
-                        'parking_space' => 'disabled',
-                        'description' => 'Ved hovedindgangen',
-                        'fee' => 'donation',
-                    ],
+            ],
+            [
+                'type' => 'node',
+                'id' => 101,
+                'lat' => 56.15,
+                'lon' => 10.21,
+                'tags' => [
+                    'amenity' => 'parking',
+                    'capacity' => '36',
+                    'capacity:disabled' => 'yes',
                 ],
-                [
-                    'type' => 'node',
-                    'lat' => 56.17,
-                    'lon' => 10.23,
-                    'tags' => ['parking_space' => 'disabled'],
+            ],
+            [
+                'type' => 'node',
+                'id' => 102,
+                'lat' => 56.16,
+                'lon' => 10.22,
+                'tags' => [
+                    'amenity' => 'parking_space',
+                    'parking_space' => 'disabled',
+                    'description' => 'Ved hovedindgangen',
+                    'fee' => 'donation',
                 ],
-                [
-                    'type' => 'node',
-                    'id' => 103,
-                    'tags' => ['parking_space' => 'disabled'],
-                ],
+            ],
+            [
+                'type' => 'node',
+                'lat' => 56.17,
+                'lon' => 10.23,
+                'tags' => ['parking_space' => 'disabled'],
+            ],
+            [
+                'type' => 'node',
+                'id' => 103,
+                'tags' => ['parking_space' => 'disabled'],
             ],
         ];
     }
