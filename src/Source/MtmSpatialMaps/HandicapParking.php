@@ -6,17 +6,15 @@ namespace App\Source\MtmSpatialMaps;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
+use App\Source\AbstractSource;
 use App\Source\DataSourceReader;
 use App\Source\Manifest\Catalog;
 use App\Source\Manifest\Descriptor;
-use App\Source\SourceInterface;
 
 /**
  * Disabled parking bays in Aarhus Municipality.
- *
- * @see config/sources.yaml
  */
-final readonly class HandicapParking implements SourceInterface
+final readonly class HandicapParking extends AbstractSource
 {
     private const string KEY = 'mtm_spatialmaps-handicap-parking';
 
@@ -25,11 +23,29 @@ final readonly class HandicapParking implements SourceInterface
         private Wgs84Transformer $transformer,
         private Catalog $catalog,
     ) {
-    }
+        parent::__construct(
+            id: 'mtm_spatialmaps-handicap-parking',
+            title: 'Handicapparkering, Aarhus Kommune',
+            description: 'Disabled parking bays in Aarhus Municipality, with the number of reserved bays per location.',
+            publisher: 'Aarhus Kommune',
+            contact: 'ppg@aarhus.dk',
+            landingPage: 'https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune',
+            accessUrl: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap',
+            mediaType: 'application/geo+json',
+            crs: 'EPSG:25832',
+            model: 'OnStreetParking',
+            contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
+            updateFrequency: 'continuous',
 
-    public function key(): string
-    {
-        return self::KEY;
+            omittedFields: [
+                'ident' => 'Single-letter code; its meaning is not documented and not confirmed by the data owner.',
+                'oprettet_af' => 'Directory username of the municipal employee who created the record.',
+                'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
+                'oprettet_dato' => 'Describes the register record.',
+                'rettet_dato' => 'Describes the register record.',
+                'mi_style' => 'MapInfo rendering style, empty throughout the export.',
+            ],
+        );
     }
 
     public function entities(): iterable
