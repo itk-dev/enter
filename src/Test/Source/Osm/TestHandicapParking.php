@@ -8,6 +8,7 @@ use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
 use App\Source\Definition;
+use App\Test\Source\TestDefinition;
 use Symfony\Component\DependencyInjection\Attribute\When;
 
 /**
@@ -15,15 +16,10 @@ use Symfony\Component\DependencyInjection\Attribute\When;
  */
 #[When('dev')]
 #[When('test')]
-#[Definition(
+#[TestDefinition(
     // By convention the ID as a test source must start with `test:`
     id: 'test:osm-handicap-parking',
     title: 'Test: Handicapparkering (OpenStreetMap), Aarhus Kommune',
-    description: '',
-    publisher: '',
-    contact: '',
-    // The landingPage URL is used by the `test:source:fetch-content` command to fetch test content.
-    landingPage: 'https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A180%5D%3Barea%283601784663%29-%3E.a%3B%28nwr%5B%22parking_space%22%3D%22disabled%22%5D%28area.a%29%3Bnwr%5B%22capacity%3Adisabled%22%5D%5B%22capacity%3Adisabled%22%21~%22%5E%28no%7C0%29%24%22%5D%28area.a%29%3B%29%3Bout%20geom%20tags%3B',
     // The Overpass QL in the URL: within Aarhus Municipality (OSM
     // relation 1784663), select every element tagged as a disabled
     // parking space (parking_space=disabled) or as reserving bays for
@@ -33,8 +29,6 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     crs: 'EPSG:4326',
     model: 'OnStreetParking',
     contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
-    updateFrequency: '',
-    licence: null,
 
     omittedFields: [
         'amenity' => 'Selector distinguishing a single bay (parking_space) from a facility (parking); the model carries no such distinction.',
@@ -50,6 +44,7 @@ use Symfony\Component\DependencyInjection\Attribute\When;
         'operator' => 'Who runs the facility; a fact about the business rather than its reserved bays. 1% of records carry it.',
         'brand' => 'Commercial brand of the facility; the name already identifies it. Under 1% of records carry it.',
     ],
+    sourceId: 'osm-handicap-parking',
 )]
 final class TestHandicapParking extends AbstractSource
 {

@@ -4,12 +4,16 @@
 
 For local testing and development we use a test controller that's only enabled in the `dev` and `test` environments.
 
-Furthermore, we use static test sources (fetching locally stored data) for testing and development. By convention,
-the ID of a test source starts with `test:`, i.e. they can be listed by running
+Furthermore, we use static test sources (fetching locally stored data) for testing and development. Test sources are
+identified by the `#[TestDefinition]` attribute (rather than `#[Definition]` as real sources).
+
+Test sources can be listed with the `test:source:list` command:
 
 ```shell
-docker compose exec phpfpm php bin/console app:source:list | grep 'test:'
+docker compose exec phpfpm php bin/console test:source:list
 ```
+
+(the `app:source:list` command will list all source; including test sources.)
 
 Example: Import and show data from the test source `test:mtm_spatialmaps-handicap-parking`:
 
@@ -30,10 +34,11 @@ The data files can be updated by running
 docker compose exec phpfpm php bin/console test:source:fetch-content
 ```
 
-Load *all test sources* with
+As shown above, test sources can be imported just like real sources, but for convenience the `test:sources:import`
+command can be used to import *all test sources*:
 
 ```shell
-docker compose exec phpfpm php bin/console test:source:import
+docker compose exec phpfpm php bin/console test:sources:import
 ```
 
 To empty your local broker, e.g. before loading test data, run

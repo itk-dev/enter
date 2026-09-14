@@ -7,7 +7,7 @@ namespace App\Test\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
-use App\Source\Definition;
+use App\Test\Source\TestDefinition;
 use Symfony\Component\DependencyInjection\Attribute\When;
 
 /**
@@ -15,22 +15,15 @@ use Symfony\Component\DependencyInjection\Attribute\When;
  */
 #[When('dev')]
 #[When('test')]
-#[Definition(
+#[TestDefinition(
     // By convention the ID as a test source must start with `test:`
     id: 'test:mtm_spatialmaps-handicap-parking',
     title: 'Test: Handicapparkering, Aarhus Kommune',
-    description: '',
-    publisher: '',
-    contact: '',
-    // The landingPage URL is used by the `test:source:fetch-content` command to fetch test content.
-    landingPage: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap',
     accessUrl: 'http://nginx:8080/test/data/webkort.aarhuskommune.dk/spatialmap?mtm_spatialmaps-handicap-parking',
     mediaType: 'application/geo+json',
     crs: 'EPSG:25832',
     model: 'OnStreetParking',
     contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
-    updateFrequency: '',
-    licence: null,
     omittedFields: [
         'ident' => 'Single-letter code; its meaning is not documented and not confirmed by the data owner.',
         'oprettet_af' => 'Directory username of the municipal employee who created the record.',
@@ -39,6 +32,7 @@ use Symfony\Component\DependencyInjection\Attribute\When;
         'rettet_dato' => 'Describes the register record.',
         'mi_style' => 'MapInfo rendering style, empty throughout the export.',
     ],
+    sourceId: 'mtm_spatialmaps-handicap-parking',
 )]
 final class TestHandicapParking extends AbstractSource
 {

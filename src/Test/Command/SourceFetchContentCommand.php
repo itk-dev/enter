@@ -2,8 +2,8 @@
 
 namespace App\Test\Command;
 
-use App\Source\SourceInterface;
 use App\SourceManager;
+use App\Test\Source\TestDefinition;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -29,13 +29,16 @@ class SourceFetchContentCommand
         OutputInterface $output,
         Application $application,
     ): int {
-        /** @var SourceInterface[] $testSources */
-        $testSources = array_filter($manager->getSources(), static fn (SourceInterface $source) => str_starts_with($source->definition->id, 'test:'));
-        foreach ($testSources as $source) {
+        foreach ($manager->getSources() as $source) {
+            $definition = $source->definition;
+            if (!$definition instanceof TestDefinition) {
+                continue;
+            }
+
             try {
                 $io->section($source);
-                $url = $source->definition->landingPage;
-                $filename = preg_replace('@^[a-z]+://[^/]+/test/@', '', $source->definition->accessUrl);
+                $url = $manager->getSource($definition->sourceId)->definition->accessUrl;
+                $filename = preg_replace('@^[a-z]+://[^/]+/test/@', '', $definition->accessUrl);
                 $filename = __DIR__.'/../../../tests/resources/'.$filename;
 
                 if ($filesystem->exists($filename)) {
