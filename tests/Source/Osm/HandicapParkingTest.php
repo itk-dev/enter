@@ -22,12 +22,12 @@ class HandicapParkingTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->source = new HandicapParking(new Wgs84Transformer());
-
+        $this->source = new HandicapParking();
+        $transformer = new Wgs84Transformer();
         $this->entities = array_values(array_map(
             static fn (NgsiEntity $entity): array => $entity->toPayload(['https://example.com/context.jsonld']),
             array_filter(array_map(
-                $this->source->createNgsiEntity(...),
+                fn (array $data) => $this->source->createNgsiEntity($data, $transformer),
                 $this->elements()
             ))
         ));

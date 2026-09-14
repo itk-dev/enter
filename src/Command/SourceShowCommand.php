@@ -18,7 +18,7 @@ class SourceShowCommand
         #[Argument('The source ID')]
         SourceInterface $source): int
     {
-        $io->writeln(Yaml::dump($source->toArray(), PHP_INT_MAX));
+        $io->writeln(Yaml::dump($source->toArray(), inline: PHP_INT_MAX, flags: Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK));
 
         return Command::SUCCESS;
     }
