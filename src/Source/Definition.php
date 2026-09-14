@@ -13,6 +13,10 @@ namespace App\Source;
 readonly class Definition
 {
     /**
+     * @param string|array{
+     *      url: string,
+     *      query: array<string, mixed>
+     * } $accessUrl
      * @param array<string, string> $omittedFields
      */
     public function __construct(
@@ -22,7 +26,8 @@ readonly class Definition
         public string $publisher,
         public string $contact,
         public string $landingPage,
-        public string $accessUrl,
+        public string|array $accessUrl,
+        public DataType $dataType,
         public string $mediaType,
         public string $crs,
         public string $model,
@@ -65,6 +70,7 @@ readonly class Definition
             'contact' => $this->contact,
             'landing_page' => $this->landingPage,
             'access_url' => $this->accessUrl,
+            'data_type' => $this->dataType,
             'media_type' => $this->mediaType,
             'crs' => $this->crs,
             'model' => $this->model,

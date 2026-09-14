@@ -7,6 +7,7 @@ namespace App\Source\Osm;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
+use App\Source\DataType;
 use App\Source\Definition;
 
 /**
@@ -24,7 +25,22 @@ use App\Source\Definition;
     // relation 1784663), select every element tagged as a disabled
     // parking space (parking_space=disabled) or as reserving bays for
     // disabled parking (capacity:disabled, excluding "no" and "0").
-    accessUrl: 'https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A180%5D%3Barea%283601784663%29-%3E.a%3B%28nwr%5B%22parking_space%22%3D%22disabled%22%5D%28area.a%29%3Bnwr%5B%22capacity%3Adisabled%22%5D%5B%22capacity%3Adisabled%22%21~%22%5E%28no%7C0%29%24%22%5D%28area.a%29%3B%29%3Bout%20geom%20tags%3B',
+    // accessUrl: 'https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A180%5D%3Barea%283601784663%29-%3E.a%3B%28nwr%5B%22parking_space%22%3D%22disabled%22%5D%28area.a%29%3Bnwr%5B%22capacity%3Adisabled%22%5D%5B%22capacity%3Adisabled%22%21~%22%5E%28no%7C0%29%24%22%5D%28area.a%29%3B%29%3Bout%20geom%20tags%3B',
+    accessUrl: [
+        'url' => 'https://overpass-api.de/api/interpreter',
+        'query' => [
+            'data' => <<<'DATA'
+[out:json][timeout:180];
+area(3601784663)->.a;
+(
+ nwr["parking_space"="disabled"](area.a);
+ nwr["capacity:disabled"]["capacity:disabled"!~"^(no|0)$"](area.a);
+);
+out geom tags;
+DATA,
+        ],
+    ],
+    dataType: DataType::Overpass,
     mediaType: 'application/json',
     crs: 'EPSG:4326',
     model: 'OnStreetParking',
@@ -47,17 +63,12 @@ use App\Source\Definition;
 )]
 final class HandicapParking extends AbstractSource
 {
-    public function __construct(
-        private readonly Wgs84Transformer $transformer,
-    ) {
-    }
-
     /**
      * Maps one feed record onto an NgsiEntity.
      *
      * @param array<string, mixed> $data Overpass JSON element
      */
-    public function createNgsiEntity(array $data): ?NgsiEntity
+    public function createNgsiEntity(array $data, Wgs84Transformer $transformer): ?NgsiEntity
     {
         $type = $data['type'] ?? null;
         $id = $data['id'] ?? null;

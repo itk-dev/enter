@@ -7,6 +7,7 @@ namespace App\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
+use App\Source\DataType;
 use App\Source\Definition;
 
 /**
@@ -20,6 +21,7 @@ use App\Source\Definition;
     contact: 'ppg@aarhus.dk',
     landingPage: 'https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune',
     accessUrl: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap',
+    dataType: DataType::GeoJSON,
     mediaType: 'application/geo+json',
     crs: 'EPSG:25832',
     model: 'OnStreetParking',
@@ -42,17 +44,10 @@ use App\Source\Definition;
 )]
 final class HandicapParking extends AbstractSource
 {
-    public function __construct(
-        private readonly Wgs84Transformer $transformer,
-    ) {
-    }
-
     /**
      * Maps one feed record onto an NgsiEntity.
-     *
-     * @param array<string, mixed> $data GeoJSON Feature
      */
-    public function createNgsiEntity(array $data): ?NgsiEntity
+    public function createNgsiEntity(array $data, Wgs84Transformer $transformer): ?NgsiEntity
     {
         $row = $data['properties'] ?? null;
         $geometry = $data['geometry'] ?? null;
@@ -80,7 +75,7 @@ final class HandicapParking extends AbstractSource
             ->setProperty('category', ['forDisabled'])
             ->setProperty('totalSpotNumber', (int) ($row['invalidepladser'] ?? 0))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $this->transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry));
     }
 
     /**

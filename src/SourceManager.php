@@ -2,26 +2,30 @@
 
 namespace App;
 
-use App\Source\AbstractSource;
 use App\Source\SourceInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 final class SourceManager
 {
     /**
-     * Sources indexed by ID.
-     *
-     * @var array<string, SourceInterface>
-     */
-    private array $indexed;
-
-    /**
      * @param iterable<SourceInterface> $sources
      */
     public function __construct(
         #[AutowireIterator('app.source')]
-        private readonly iterable $sources,
+        private iterable $sources,
     ) {
+        $indexed = [];
+        foreach ($sources as $source) {
+            if (!$source instanceof SourceInterface) {
+                throw new \InvalidArgumentException(sprintf('Invalid source class: %s (must implement %s)', $source::class, SourceInterface::class));
+            }
+            $id = $source->definition->id;
+            if (isset($indexed[$id])) {
+                throw new \RuntimeException(sprintf('Duplicate source: %s (ID already used by %s)', $id, $indexed[$id]::class));
+            }
+            $indexed[$id] = $source;
+        }
+        $this->sources = $indexed;
     }
 
     /**
@@ -31,22 +35,7 @@ final class SourceManager
      */
     public function getSources(): array
     {
-        if (!isset($this->indexed)) {
-            $sources = [];
-            foreach ($this->sources as $source) {
-                if (!$source instanceof SourceInterface) {
-                    throw new \InvalidArgumentException(sprintf('Invalid source class: %s (must extend %s)', $source::class, AbstractSource::class));
-                }
-                $id = $source->definition->id;
-                if (isset($sources[$id])) {
-                    throw new \RuntimeException(sprintf('Duplicate source: %s (ID already used by %s)', $id, $sources[$id]::class));
-                }
-                $sources[$id] = $source;
-            }
-            $this->indexed = $sources;
-        }
-
-        return $this->indexed;
+        return $this->sources;
     }
 
     public function getSource(string $name): SourceInterface
