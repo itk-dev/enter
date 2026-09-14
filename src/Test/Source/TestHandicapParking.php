@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Source\Test;
+namespace App\Test\Source;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
