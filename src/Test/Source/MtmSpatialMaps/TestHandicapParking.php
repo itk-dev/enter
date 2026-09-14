@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Test\Source;
+namespace App\Test\Source\MtmSpatialMaps;
 
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
@@ -15,37 +15,36 @@ use Symfony\Component\DependencyInjection\Attribute\When;
  */
 #[When('dev')]
 #[When('test')]
-final readonly class TestHandicapParking extends AbstractSource
+#[Definition(
+    // By convention the ID as a test source must start with `test:`
+    id: 'test:mtm_spatialmaps-handicap-parking',
+    title: 'Test: Handicapparkering, Aarhus Kommune',
+    description: '',
+    publisher: '',
+    contact: '',
+    // The landingPage URL is used by the `test:source:fetch-content` command to fetch test content.
+    landingPage: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap',
+    accessUrl: 'http://nginx:8080/test/data/webkort.aarhuskommune.dk/spatialmap?mtm_spatialmaps-handicap-parking',
+    mediaType: 'application/geo+json',
+    crs: 'EPSG:25832',
+    model: 'OnStreetParking',
+    contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
+    updateFrequency: '',
+    licence: null,
+    omittedFields: [
+        'ident' => 'Single-letter code; its meaning is not documented and not confirmed by the data owner.',
+        'oprettet_af' => 'Directory username of the municipal employee who created the record.',
+        'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
+        'oprettet_dato' => 'Describes the register record.',
+        'rettet_dato' => 'Describes the register record.',
+        'mi_style' => 'MapInfo rendering style, empty throughout the export.',
+    ],
+)]
+final class TestHandicapParking extends AbstractSource
 {
-    public Definition $definition;
-
     public function __construct(
-        private Wgs84Transformer $transformer,
+        private readonly Wgs84Transformer $transformer,
     ) {
-        $this->definition = new Definition(
-            id: 'test:mtm_spatialmaps-handicap-parking',
-            title: 'Test: Handicapparkering, Aarhus Kommune',
-            description: 'Disabled parking bays in Aarhus Municipality, with the number of reserved bays per location.',
-            publisher: 'Aarhus Kommune',
-            contact: 'ppg@aarhus.dk',
-            landingPage: 'https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune',
-            accessUrl: 'http://nginx:8080/test/data/webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap',
-            mediaType: 'application/geo+json',
-            crs: 'EPSG:25832',
-            model: 'OnStreetParking',
-            contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
-            updateFrequency: 'continuous',
-            licence: null,
-
-            omittedFields: [
-                'ident' => 'Single-letter code; its meaning is not documented and not confirmed by the data owner.',
-                'oprettet_af' => 'Directory username of the municipal employee who created the record.',
-                'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
-                'oprettet_dato' => 'Describes the register record.',
-                'rettet_dato' => 'Describes the register record.',
-                'mi_style' => 'MapInfo rendering style, empty throughout the export.',
-            ],
-        );
     }
 
     /**

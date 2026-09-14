@@ -3,7 +3,7 @@
 Run
 
 ```shell
-./data/fetch-resources
+docker compose exec phpfpm php bin/console test:source-content:fetch
 ```
 
-to update the data resources.
+to update the test data resources.
