@@ -7,9 +7,10 @@ namespace App\Source;
 /**
  * The configuration of a source.
  *
- * @see AbstractSource
+ * @see AsDataSource
  */
-final readonly class Definition
+#[\Attribute(\Attribute::TARGET_CLASS)]
+readonly class Definition
 {
     /**
      * @param array<string, string> $omittedFields
@@ -30,6 +31,25 @@ final readonly class Definition
         public ?string $licence,
         public array $omittedFields,
     ) {
+    }
+
+    /**
+     * The definition a source class declares.
+     *
+     * Reading it takes no instance, so the metadata of every data set is
+     * available without building the sources and their collaborators.
+     *
+     * @param class-string $class
+     *
+     * @throws \ReflectionException
+     */
+    public static function of(string $class): self
+    {
+        $reflection = new \ReflectionClass($class);
+        $attribute = $reflection->getAttributes(AsDataSource::class)[0]
+            ?? throw new \LogicException(sprintf('Source %s declares no #[%s] attribute.', $class, AsDataSource::class));
+
+        return $attribute->newInstance();
     }
 
     /**

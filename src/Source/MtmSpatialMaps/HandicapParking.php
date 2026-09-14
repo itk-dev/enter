@@ -12,37 +12,39 @@ use App\Source\Definition;
 /**
  * Disabled parking bays in Aarhus Municipality.
  */
-final readonly class HandicapParking extends AbstractSource
+#[Definition(
+    id: 'mtm_spatialmaps-handicap-parking',
+    title: 'Handicapparkering, Aarhus Kommune',
+    description: 'Disabled parking bays in Aarhus Municipality, with the number of reserved bays per location.',
+    publisher: 'Aarhus Kommune',
+    contact: 'ppg@aarhus.dk',
+    landingPage: 'https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune',
+    accessUrl: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap',
+    mediaType: 'application/geo+json',
+    crs: 'EPSG:25832',
+    model: 'OnStreetParking',
+    contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
+    updateFrequency: 'continuous',
+
+    // The portal states no licence for this data set. DCAT-AP requires one, so
+    // it has to be settled with the data owner before the catalogue can be
+    // registered anywhere.
+    licence: null,
+
+    omittedFields: [
+        'ident' => 'Single-letter code; its meaning is not documented and not confirmed by the data owner.',
+        'oprettet_af' => 'Directory username of the municipal employee who created the record.',
+        'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
+        'oprettet_dato' => 'Describes the register record.',
+        'rettet_dato' => 'Describes the register record.',
+        'mi_style' => 'MapInfo rendering style, empty throughout the export.',
+    ],
+)]
+final class HandicapParking extends AbstractSource
 {
-    public Definition $definition;
-
     public function __construct(
-        private Wgs84Transformer $transformer,
+        private readonly Wgs84Transformer $transformer,
     ) {
-        $this->definition = new Definition(
-            id: 'mtm_spatialmaps-handicap-parking',
-            title: 'Handicapparkering, Aarhus Kommune',
-            description: 'Disabled parking bays in Aarhus Municipality, with the number of reserved bays per location.',
-            publisher: 'Aarhus Kommune',
-            contact: 'ppg@aarhus.dk',
-            landingPage: 'https://www.opendata.dk/city-of-aarhus/parkering-i-aarhus-kommune',
-            accessUrl: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=invap',
-            mediaType: 'application/geo+json',
-            crs: 'EPSG:25832',
-            model: 'OnStreetParking',
-            contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
-            updateFrequency: 'continuous',
-            licence: null,
-
-            omittedFields: [
-                'ident' => 'Single-letter code; its meaning is not documented and not confirmed by the data owner.',
-                'oprettet_af' => 'Directory username of the municipal employee who created the record.',
-                'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
-                'oprettet_dato' => 'Describes the register record.',
-                'rettet_dato' => 'Describes the register record.',
-                'mi_style' => 'MapInfo rendering style, empty throughout the export.',
-            ],
-        );
     }
 
     /**

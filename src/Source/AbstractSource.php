@@ -5,8 +5,18 @@ namespace App\Source;
 /**
  * Abstract source.
  */
-abstract readonly class AbstractSource implements SourceInterface
+abstract class AbstractSource implements SourceInterface
 {
+    /**
+     * Read from the #[AsDataSource] attribute on the concrete source.
+     */
+    public Definition $definition {
+        /**
+         * @throws \ReflectionException
+         */
+        get => Definition::of(static::class);
+    }
+
     public function key(): string
     {
         return $this->definition->id;
