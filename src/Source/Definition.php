@@ -9,6 +9,7 @@ namespace App\Source;
  *
  * @see AsDataSource
  */
+#[\Attribute(\Attribute::TARGET_CLASS)]
 readonly class Definition
 {
     /**

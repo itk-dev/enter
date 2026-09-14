@@ -7,12 +7,12 @@ namespace App\Source\Osm;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
-use App\Source\AsDataSource;
+use App\Source\Definition;
 
 /**
  * Disabled parking bays in Aarhus Municipality.
  */
-#[AsDataSource(
+#[Definition(
     id: 'osm-handicap-parking',
     title: 'Handicapparkering (OpenStreetMap), Aarhus Kommune',
     description: 'Disabled parking mapped in OpenStreetMap within Aarhus Municipality: single reserved bays, and parking facilities that state how many of their bays are reserved.',

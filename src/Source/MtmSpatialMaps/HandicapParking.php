@@ -7,12 +7,12 @@ namespace App\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
-use App\Source\AsDataSource;
+use App\Source\Definition;
 
 /**
  * Disabled parking bays in Aarhus Municipality.
  */
-#[AsDataSource(
+#[Definition(
     id: 'mtm_spatialmaps-handicap-parking',
     title: 'Handicapparkering, Aarhus Kommune',
     description: 'Disabled parking bays in Aarhus Municipality, with the number of reserved bays per location.',
