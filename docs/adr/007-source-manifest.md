@@ -68,3 +68,23 @@ from it every fact the code needs.
   coordinates that are well-formed and misplaced.
 - A malformed record blocks every build, not just the import that reads it.
 - Fields no code reads have only review keeping them current.
+
+## Revision
+
+2026-09-14: the manifest was replaced by a declaration on the class that maps
+each data set, stated as an attribute whose type is the metadata type itself.
+
+Two factors caused the change in approach. 
+Each data set was named twice, once as a manifest key and
+once in the class mapping it, and nothing checked that the two agreed, so a
+rename on one side produced a data set that could no longer be selected. And a
+record was reachable only through the configuration it belonged to, leaving the
+metadata unavailable to anything that merely wanted to describe the published
+data sets.
+
+Declaring it on the class settles both: one name, in one file, readable without
+constructing anything. A malformed declaration still fails, now because the
+type rejects one that omits a required fact rather than because a schema
+validates it. Two trade-offs arrive with it: attribute arguments must be
+constant expressions, so metadata taken from the environment needs another
+mechanism, and no single file lists every published data set.

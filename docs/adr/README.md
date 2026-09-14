@@ -18,5 +18,5 @@ Numbering follows dependency order: each ADR relies only on lower-numbered
 ones. Dates therefore do not run in the same order as numbers.
 
 All ADRs state general policy and name no data set. Concrete per-data-set
-facts are recorded in `config/sources.yaml`, and the mappings in the source
-classes themselves.
+facts are declared on the source classes themselves, alongside the mappings
+they describe.
