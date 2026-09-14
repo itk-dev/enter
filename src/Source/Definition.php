@@ -46,8 +46,8 @@ readonly class Definition
     public static function of(string $class): self
     {
         $reflection = new \ReflectionClass($class);
-        $attribute = $reflection->getAttributes(AsDataSource::class)[0]
-            ?? throw new \LogicException(sprintf('Source %s declares no #[%s] attribute.', $class, AsDataSource::class));
+        $attribute = $reflection->getAttributes(Definition::class)[0]
+            ?? throw new \LogicException(sprintf('Source %s declares no #[%s] attribute.', $class, Definition::class));
 
         return $attribute->newInstance();
     }
