@@ -74,7 +74,7 @@ from it every fact the code needs.
 2026-09-14: the manifest was replaced by a declaration on the class that maps
 each data set, stated as an attribute whose type is the metadata type itself.
 
-Two factors caused the change in approach. 
+Two factors caused the change in approach.
 Each data set was named twice, once as a manifest key and
 once in the class mapping it, and nothing checked that the two agreed, so a
 rename on one side produced a data set that could no longer be selected. And a
