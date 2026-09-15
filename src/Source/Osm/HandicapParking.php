@@ -97,7 +97,7 @@ final class HandicapParking extends AbstractSource
             ->setProperty('category', $this->category($tags))
             ->setProperty('totalSpotNumber', $this->reservedBays($tags))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $this->transformer->transformGeometry($this->definition->crs, $geometry))
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
 
             // Add custom attributes
             ->additionalInformation([
