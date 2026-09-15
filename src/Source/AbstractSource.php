@@ -8,7 +8,7 @@ namespace App\Source;
 abstract class AbstractSource implements SourceInterface
 {
     /**
-     * Read from the #[AsDataSource] attribute on the concrete source.
+     * Read from the #[Definition] attribute on the concrete source.
      */
     public Definition $definition {
         /**
