@@ -46,6 +46,9 @@
         // zoom stops here rather than running to the map's own limit.
         const CLOSEST = 0.4;
 
+        // How far off a marker still counts as being on it.
+        const HIT_TOLERANCE = 6;
+
         const members = feature => feature.get('features') ?? [];
 
         const extentOf = features => features.reduce((extent, feature) => {
@@ -63,13 +66,7 @@
         // Clicking it moves to where they are, which is the only way to reach
         // them short of guessing at the zoom.
         const zoomToGroup = (map, coordinate) => {
-            let grouped = null;
-
-            map.forEachFeatureAtPixel(
-                map.getPixelFromCoordinate(coordinate),
-                feature => { grouped ??= members(feature).length > 1 ? members(feature) : null; },
-                { hitTolerance: 6 }
-            );
+            const grouped = groupAt(map, map.getPixelFromCoordinate(coordinate));
 
             if (grouped === null) {
                 return false;
@@ -84,12 +81,37 @@
             return true;
         };
 
+        const groupAt = (map, pixel) => {
+            let grouped = null;
+
+            map.forEachFeatureAtPixel(
+                pixel,
+                feature => { grouped ??= members(feature).length > 1 ? members(feature) : null; },
+                { hitTolerance: HIT_TOLERANCE }
+            );
+
+            return grouped;
+        };
+
         const widget = new Widget(document.querySelector('.test-map'));
 
         widget.on('click', (event, control, features, coordinate) => {
             if (control?.map && coordinate) {
                 zoomToGroup(control.map, coordinate);
             }
+        });
+
+        // The map itself, which the widget holds but does not hand out. Only
+        // the pointer needs it before the first click; everything else is
+        // reached through the events.
+        widget.on('ready', () => {
+            const map = (widget._widget?.controls ?? []).find(control => control?.map?.getLayers)?.map;
+
+            map?.on('pointermove', event => {
+                if (!event.dragging) {
+                    map.getTargetElement().style.cursor = groupAt(map, event.pixel) === null ? '' : 'pointer';
+                }
+            });
         });
 
         window.enterMap = widget;
