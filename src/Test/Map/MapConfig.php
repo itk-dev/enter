@@ -32,6 +32,24 @@ final readonly class MapConfig
     private const int FEATURES_PER_CLICK = 10;
 
     /**
+     * Small enough that neighbouring bays stay apart at street zoom, while
+     * still giving a click something to land on.
+     */
+    private const int POINT_RADIUS = 4;
+
+    /**
+     * Points closer together than this are drawn as one, and fan out into a
+     * grid when clicked so each can be picked on its own.
+     */
+    private const int CLUSTER_SPACING = 22;
+
+    /**
+     * How many of a cluster's points the grid lays out. Beyond this the
+     * remainder stays behind the last icon rather than covering the map.
+     */
+    private const int CLUSTER_GRID_MAX = 12;
+
+    /**
      * @param array<string, mixed>           $base    the configuration read from file
      * @param array<string, SourceInterface> $sources the test sources, indexed by id
      * @param callable(string): string       $dataUrl builds the features URL for a source id
@@ -105,7 +123,21 @@ final readonly class MapConfig
             'visible' => true,
             'srs' => 'EPSG:4326',
             'template_info' => $this->template($source),
+            // Points that land on the same spot are drawn as one and fan
+            // out into a grid on click, so each stays reachable. This only
+            // reaches within a layer; a point hidden under another data
+            // set's polygon is what the info control's multifeature is for.
+            'cluster' => [
+                'grid' => [
+                    'spacing' => self::CLUSTER_SPACING,
+                    'maxGridIcons' => self::CLUSTER_GRID_MAX,
+                ],
+            ],
             'features_style' => [
+                'symbol' => 'circle',
+                'symbol_selected' => 'circle',
+                'radius' => self::POINT_RADIUS,
+                'radius_selected' => self::POINT_RADIUS + 2,
                 'fillcolor' => $colour,
                 'fillcolor_selected' => $colour,
                 // A solid polygon would hide whatever the other data set put
