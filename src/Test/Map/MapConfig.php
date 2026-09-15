@@ -42,7 +42,13 @@ final readonly class MapConfig
      * one of the data set colours: it has to read as "this one" whichever
      * layer the feature belongs to.
      */
-    private const string SELECTED_OUTLINE = '#111111';
+    private const string SELECTED_OUTLINE = '#000000';
+
+    /**
+     * How much larger a point is drawn once selected. Enough to grow past
+     * whatever it is sitting on rather than merely change colour under it.
+     */
+    private const int SELECTED_GROWTH = 6;
 
     /**
      * The name of the element on the page that the layer toggles render into.
@@ -229,12 +235,7 @@ final readonly class MapConfig
             'title' => $source->definition->title,
             'type' => 'geojson',
             'features' => true,
-            // The widget reads this as a template and fills in the view it is
-            // about to draw, then asks again whenever that view changes. Only
-            // what is on screen is fetched, which is what keeps the map usable
-            // as the data grows past what a single response should carry.
-            'features_host' => $url.'&bbox=<%= bbox %>',
-            'loadingstrategy' => 'bbox',
+            'features_host' => $url,
             'visible' => true,
             'srs' => 'EPSG:4326',
             'zIndex' => 1 === self::drawsAreas($source) ? self::Z_AREAS : self::Z_POINTS,
@@ -244,7 +245,7 @@ final readonly class MapConfig
                 'symbol' => 'circle',
                 'symbol_selected' => 'circle',
                 'radius' => self::POINT_RADIUS,
-                'radius_selected' => self::POINT_RADIUS + 3,
+                'radius_selected' => self::POINT_RADIUS + self::SELECTED_GROWTH,
                 'fillcolor' => $colour,
                 'fillcolor_selected' => $colour,
                 // A solid area would hide whatever another data set put
@@ -252,7 +253,7 @@ final readonly class MapConfig
                 // A point hides nothing, and washing it out only makes it
                 // harder to pick out against the map.
                 'fillopacity' => 1 === self::drawsAreas($source) ? 0.35 : 0.9,
-                'fillopacity_selected' => 1 === self::drawsAreas($source) ? 0.65 : 1,
+                'fillopacity_selected' => 1 === self::drawsAreas($source) ? 0.75 : 1,
                 // Two areas that touch, or lie one on the other, are a single
                 // shape without an edge to tell them apart. The outline is
                 // darker than the fill so it reads as a border rather than
@@ -263,7 +264,8 @@ final readonly class MapConfig
                 'strokewidth' => 1.5,
                 // What is being looked at has to stand out from its
                 // neighbours, which are the same colour by definition.
-                'strokewidth_selected' => 4,
+                'strokewidth_selected' => 5,
+                'strokeopacity_selected' => 1,
             ],
         ];
     }

@@ -33,17 +33,16 @@ final readonly class SourceFeatures
     }
 
     /**
-     * @param string           $type the expanded entity type, as the map asks for it
-     * @param list<float>|null $bbox the view to fetch for, west/south/east/north
+     * @param string $type the expanded entity type, as the map asks for it
      *
      * @return array{type: string, features: list<array<string, mixed>>}
      */
-    public function forSource(SourceInterface $source, string $type, ?array $bbox = null): array
+    public function forSource(SourceInterface $source, string $type): array
     {
         $definition = $source->definition;
         $collection = $this->reader->readAll(
             self::ENTITIES_PATH,
-            ['type' => $type] + $this->within($bbox),
+            ['type' => $type],
             ['accept' => 'application/geo+json'],
         );
 
@@ -59,45 +58,6 @@ final readonly class SourceFeatures
         }
 
         return ['type' => 'FeatureCollection', 'features' => $this->areasFirst($features)];
-    }
-
-    /**
-     * The broker's own filter for a view, so that what is off screen is never
-     * fetched, let alone sent.
-     *
-     * @param list<float>|null $bbox
-     *
-     * @return array<string, string>
-     */
-    private function within(?array $bbox): array
-    {
-        if (null === $bbox || 4 !== count($bbox)) {
-            return [];
-        }
-
-        return [
-            'georel' => 'within',
-            'geometry' => 'Polygon',
-            'geoproperty' => 'location',
-            'coordinates' => json_encode([$this->ring($bbox)]),
-        ];
-    }
-
-    /**
-     * The view as a closed ring of longitude/latitude pairs.
-     *
-     * The view arrives in degrees whatever projection the map draws in, which
-     * is also what the broker wants, so there is nothing to reproject.
-     *
-     * @param list<float> $bbox
-     *
-     * @return list<list<float>>
-     */
-    private function ring(array $bbox): array
-    {
-        [$west, $south, $east, $north] = array_map(floatval(...), $bbox);
-
-        return [[$west, $south], [$east, $south], [$east, $north], [$west, $north], [$west, $south]];
     }
 
     /**

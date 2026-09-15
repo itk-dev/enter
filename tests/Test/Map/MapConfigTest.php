@@ -151,16 +151,32 @@ class MapConfigTest extends TestCase
     }
 
     /**
-     * Fetching every feature for every view stops being viable as the data
-     * grows, so the layer asks for the extent it is about to draw.
+     * A point selected under an area has to grow out from under it, not just
+     * change colour where it cannot be seen.
      */
-    public function testItFetchesOnlyWhatTheViewNeeds(): void
+    public function testItMakesASelectedFeatureStandOut(): void
     {
         $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
-        $layer = $config['map']['layer'][1];
+        $style = $config['map']['layer'][1]['features_style'];
 
-        $this->assertSame('bbox', $layer['loadingstrategy']);
-        $this->assertStringContainsString('bbox=', $layer['features_host']);
+        $this->assertGreaterThan($style['radius'], $style['radius_selected']);
+        $this->assertGreaterThan($style['strokewidth'], $style['strokewidth_selected']);
+        $this->assertNotSame($style['strokecolor'], $style['strokecolor_selected']);
+    }
+
+    /**
+     * Areas are drawn under points so a point is never buried by one.
+     */
+    public function testItStacksPointsOverAreas(): void
+    {
+        $config = $this->build([
+            'points' => $this->source('Points', 'https://webkort.example/feed'),
+            'areas' => $this->source('Areas', 'https://overpass-api.de/api/interpreter', DataType::Overpass),
+        ]);
+
+        $byId = array_column(array_slice($config['map']['layer'], 1), null, 'id');
+
+        $this->assertGreaterThan($byId['areas']['zIndex'], $byId['points']['zIndex']);
     }
 
     public function testItPointsEachLayerAtItsOwnFeatures(): void
@@ -170,8 +186,8 @@ class MapConfigTest extends TestCase
             'b' => $this->source('B', 'https://b.example/feed'),
         ]);
 
-        $this->assertStringStartsWith('/features/a', $config['map']['layer'][1]['features_host']);
-        $this->assertStringStartsWith('/features/b', $config['map']['layer'][2]['features_host']);
+        $this->assertSame('/features/a', $config['map']['layer'][1]['features_host']);
+        $this->assertSame('/features/b', $config['map']['layer'][2]['features_host']);
     }
 
     /**
