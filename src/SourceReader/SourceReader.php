@@ -23,8 +23,8 @@ final class SourceReader implements SourceReaderInterface
         // @todo Cache request responses.
         $definition = $source->definition;
 
-        return $this->client->request('GET', $definition->accessUrl, [
-            'query' => $definition->accessUrlQuery,
+        return $this->client->request('GET', $definition->accessUrlBase(), [
+            'query' => $definition->accessUrlQuery(),
         ])->toArray();
     }
 

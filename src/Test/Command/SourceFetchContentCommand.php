@@ -38,8 +38,8 @@ class SourceFetchContentCommand
             try {
                 $io->section($source);
                 $sourceDefinition = $manager->getSource($definition->sourceId)->definition;
-                $url = $sourceDefinition->accessUrl;
-                $query = $sourceDefinition->accessUrlQuery;
+                $url = $sourceDefinition->accessUrlBase();
+                $query = $sourceDefinition->accessUrlQuery();
                 $filename = preg_replace('@^[a-z]+://[^/]+/test/@', '', $definition->accessUrl);
                 $filename = __DIR__.'/../../../tests/resources/'.$filename;
 
