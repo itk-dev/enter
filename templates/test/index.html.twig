@@ -3,9 +3,35 @@
 {% block content %}
     {% set type = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking' %}
 
-    <h2>{{ type }}</h2>
+    <h2 class="test-map-heading">{{ type }}</h2>
 
-    <div data-widget-url="{{ path('test_config', {type: type}) }}"></div>
+    {# The layerswitch control is configured to detach into this element, so
+       the data sets get their toggles here rather than over the map. #}
+    <div class="test-map-toggles" data-widget-detach="layers"></div>
+
+    <div class="test-map" data-widget-url="{{ path('test_config', {type: type}) }}"></div>
+
+    {# Sized before the widget initialises, so it lays the map out at the
+       height it will keep rather than resizing under the user. #}
+    <script>
+        (function () {
+            var map = document.querySelector('.test-map');
+            var fit = function () {
+                var top = map.getBoundingClientRect().top + window.scrollY;
+                var height = window.innerHeight - top - 24;
+                map.style.height = Math.max(320, height) + 'px';
+            };
+
+            fit();
+            window.addEventListener('resize', fit);
+            // The heading wraps at narrow widths and the toggles only get
+            // their height once the widget has drawn them, so the first
+            // measurement is rarely the lasting one.
+            window.addEventListener('load', fit);
+            setTimeout(fit, 2000);
+        })();
+    </script>
+
     {# <script src="https://widget.cdn.septima.dk/3.23.0/widgetconfig.js"></script> #}
     {# https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
     <script src="https://widget.cdn.septima.dk/3.19.0/widgetconfig.js"></script>
