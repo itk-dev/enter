@@ -62,6 +62,29 @@
         // As many as the popup itself will show, so the two agree.
         const MARK_LIMIT = 10;
 
+        // How long the map takes to arrive, in milliseconds.
+        const MIN_TRAVEL = 450;
+        const MAX_TRAVEL = 1100;
+        const PER_LEVEL = 130;
+
+        // Slow at both ends and quickest in the middle, so the map appears to
+        // set off and arrive rather than to cut.
+        const EASING = t => (t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2);
+
+        // Long enough to follow, and longer the further it goes: covering ten
+        // zoom levels in the time of one is what makes a jump hard to read.
+        const travelTime = (map, view, extent) => {
+            const size = map.getSize();
+            const target = Math.max(
+                (extent[2] - extent[0]) / Math.max(1, size[0] - 2 * PADDING),
+                (extent[3] - extent[1]) / Math.max(1, size[1] - 2 * PADDING),
+                CLOSEST
+            );
+            const levels = Math.abs(Math.log2(view.getResolution() / target));
+
+            return Math.min(MAX_TRAVEL, MIN_TRAVEL + levels * PER_LEVEL);
+        };
+
         const members = feature => feature.get('features') ?? [];
 
         const extentOf = features => features.reduce((extent, feature) => {
@@ -85,10 +108,14 @@
                 return false;
             }
 
-            map.getView().fit(extentOf(grouped), {
+            const view = map.getView();
+            const extent = extentOf(grouped);
+
+            view.fit(extent, {
                 padding: [PADDING, PADDING, PADDING, PADDING],
                 minResolution: CLOSEST,
-                duration: 350,
+                duration: travelTime(map, view, extent),
+                easing: EASING,
             });
 
             return true;
