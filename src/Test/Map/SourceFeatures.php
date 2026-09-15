@@ -39,25 +39,105 @@ final readonly class SourceFeatures
      */
     public function forSource(SourceInterface $source, string $type): array
     {
-        $definition = $source->definition;
+        return $this->collect([$source], $type);
+    }
+
+    /**
+     * Every source's features in one collection, each saying which it is.
+     *
+     * Grouping coinciding points is something a layer does to its own
+     * features, so points that should be counted together have to arrive
+     * together. What is drawn in which colour is then decided per feature
+     * rather than per layer.
+     *
+     * @param array<string, SourceInterface> $sources
+     *
+     * @return array{type: string, features: list<array<string, mixed>>}
+     */
+    public function forSources(array $sources, string $type): array
+    {
+        return $this->collect(array_values($sources), $type, array_keys($sources), asPoints: true);
+    }
+
+    /**
+     * @param list<SourceInterface> $sources
+     * @param list<string>|null     $ids
+     *
+     * @return array{type: string, features: list<array<string, mixed>>}
+     */
+    private function collect(array $sources, string $type, ?array $ids = null, bool $asPoints = false): array
+    {
+        // Once, however many sources are being answered for: they all publish
+        // into the one model, and the broker has no way to tell them apart.
         $collection = $this->reader->readAll(
             self::ENTITIES_PATH,
             ['type' => $type],
             ['accept' => 'application/geo+json'],
         );
 
+        $owners = [];
+        foreach ($sources as $position => $source) {
+            $owners[$source->definition->accessUrlBase()] = $ids[$position] ?? $source->definition->id;
+        }
+
         $features = [];
         foreach ($collection['features'] ?? [] as $feature) {
-            if ($this->sourceOf($feature) === $definition->accessUrlBase()) {
-                $features[] = [
-                    'type' => 'Feature',
-                    'geometry' => $feature['geometry'] ?? null,
-                    'properties' => $this->flatten($feature),
-                ];
+            $owner = $owners[$this->sourceOf($feature)] ?? null;
+            if (null === $owner) {
+                continue;
             }
+
+            $geometry = $feature['geometry'] ?? null;
+
+            $features[] = [
+                'type' => 'Feature',
+                'geometry' => $asPoints ? $this->asPoint($geometry) : $geometry,
+                'properties' => ['dataset' => $owner] + $this->flatten($feature),
+            ];
         }
 
         return ['type' => 'FeatureCollection', 'features' => $this->areasFirst($features)];
+    }
+
+    /**
+     * A geometry reduced to the one point that stands for it.
+     *
+     * Grouping works on points, and an area has none of its own — but an area
+     * left out of the count would make the count wrong. Somewhere inside it is
+     * near enough for deciding what lies close to what, which is all a group
+     * is: the shape itself is drawn from the data set's own layer, close in,
+     * where it can be seen.
+     *
+     * @param array<string, mixed>|null $geometry
+     *
+     * @return array<string, mixed>|null
+     */
+    private function asPoint(?array $geometry): ?array
+    {
+        if (null === $geometry || 'Point' === ($geometry['type'] ?? null)) {
+            return $geometry;
+        }
+
+        $coordinates = $geometry['coordinates'] ?? [];
+        while (isset($coordinates[0]) && is_array($coordinates[0])) {
+            if (!is_array($coordinates[0][0] ?? null)) {
+                break;
+            }
+            $coordinates = $coordinates[0];
+        }
+
+        $points = array_values(array_filter($coordinates, static fn ($p): bool => is_array($p) && 2 <= count($p)));
+        if ([] === $points) {
+            return null;
+        }
+
+        return [
+            'type' => 'Point',
+            'coordinates' => [
+                array_sum(array_column($points, 0)) / count($points),
+                array_sum(array_column($points, 1)) / count($points),
+            ],
+        ];
     }
 
     /**

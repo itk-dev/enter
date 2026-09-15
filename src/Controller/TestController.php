@@ -118,14 +118,18 @@ final class TestController extends AbstractController
         SourceFeatures $features,
     ): JsonResponse {
         $sources = $this->testSources($manager);
-        if (!isset($sources[$sourceId])) {
-            throw new NotFoundHttpException(sprintf('No test source "%s".', $sourceId));
-        }
 
-        return new JsonResponse(
-            $features->forSource($sources[$sourceId], $type),
-            headers: ['content-type' => self::APPLICATION_GEOJSON],
-        );
+        // One id stands for all of them: what groups coinciding points can
+        // only group what it holds, so counting across data sets means
+        // serving them together.
+        $collection = MapConfig::COMBINED_ID === $sourceId
+            ? $features->forSources($sources, $type)
+            : $features->forSource(
+                $sources[$sourceId] ?? throw new NotFoundHttpException(sprintf('No test source "%s".', $sourceId)),
+                $type
+            );
+
+        return new JsonResponse($collection, headers: ['content-type' => self::APPLICATION_GEOJSON]);
     }
 
     /**
