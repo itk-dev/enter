@@ -18,7 +18,8 @@ class MapConfigTest extends TestCase
     {
         $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
 
-        $this->assertCount(2, $config['map']['layer']);
+        // The background, the data set, and the layer that groups it far out.
+        $this->assertCount(3, $config['map']['layer']);
         $this->assertSame('#septima_standard', $config['map']['layer'][0]['namedlayer']);
         $this->assertSame('a', $config['map']['layer'][1]['id']);
         $this->assertSame('A', $config['map']['layer'][1]['title']);
@@ -47,7 +48,10 @@ class MapConfigTest extends TestCase
             'polygons' => $this->source('Polygons', 'https://overpass-api.de/api/interpreter', DataType::Overpass),
         ]);
 
-        $ids = array_column(array_slice($config['map']['layer'], 1), 'id');
+        $ids = array_values(array_filter(
+            array_column(array_slice($config['map']['layer'], 1), 'id'),
+            static fn (string $id): bool => MapConfig::COMBINED_ID !== $id
+        ));
 
         $this->assertSame(['polygons', 'points'], $ids);
     }
@@ -115,24 +119,22 @@ class MapConfigTest extends TestCase
     public function testItDrawsCoincidingPointsAsASingleMarker(): void
     {
         $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
-        $cluster = $config['map']['layer'][1]['cluster'];
+        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapConfig::COMBINED_ID];
 
-        $this->assertArrayNotHasKey('grid', $cluster);
-        $this->assertArrayHasKey('features_style', $cluster);
+        $this->assertArrayNotHasKey('grid', $combined['cluster']);
+        $this->assertArrayHasKey('features_style', $combined['cluster']);
         // Close in the points stand apart on their own, and a marker saying
         // "2" tells the reader less than the two points it hides.
-        $this->assertGreaterThan(0, $cluster['minResolution']);
+        $this->assertGreaterThan(0, $combined['minResolution']);
     }
 
     /**
      * Clustering a feature reduces it to the point it sits at, which an area
      * does not have; handed one, the widget stops drawing the layer.
      */
-    public function testItLeavesADataSetOfAreasUnclustered(): void
+    public function testItLeavesTheDataSetsOwnLayersUngrouped(): void
     {
-        $config = $this->build([
-            'areas' => $this->source('Areas', 'https://overpass-api.de/api/interpreter', DataType::Overpass),
-        ]);
+        $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
 
         $this->assertArrayNotHasKey('cluster', $config['map']['layer'][1]);
     }
@@ -177,6 +179,41 @@ class MapConfigTest extends TestCase
         $byId = array_column(array_slice($config['map']['layer'], 1), null, 'id');
 
         $this->assertGreaterThan($byId['areas']['zIndex'], $byId['points']['zIndex']);
+    }
+
+    /**
+     * A layer groups only its own features, so counting across data sets
+     * means one layer holding all of them.
+     */
+    public function testItGroupsCoincidingPointsAcrossDataSets(): void
+    {
+        $config = $this->build([
+            'a' => $this->source('A', 'https://a.example/feed'),
+            'b' => $this->source('B', 'https://b.example/feed'),
+        ]);
+
+        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapConfig::COMBINED_ID];
+
+        $this->assertArrayHasKey('cluster', $combined);
+        $this->assertSame('/features/'.MapConfig::COMBINED_ID, $combined['features_host']);
+        $this->assertSame([MapConfig::COMBINED_ID], $this->control($config, 'layerswitch')['excludeLayers']);
+    }
+
+    /**
+     * The one layer holds every data set, so what tells them apart is the
+     * feature rather than the layer.
+     */
+    public function testItColoursTheCombinedLayerPerDataSet(): void
+    {
+        $config = $this->build([
+            'a' => $this->source('A', 'https://a.example/feed'),
+            'b' => $this->source('B', 'https://b.example/feed'),
+        ]);
+
+        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapConfig::COMBINED_ID];
+
+        $this->assertStringContainsString('dataset === "a"', $combined['features_style']['fillcolor']);
+        $this->assertStringContainsString('dataset === "b"', $combined['features_style']['fillcolor']);
     }
 
     public function testItPointsEachLayerAtItsOwnFeatures(): void

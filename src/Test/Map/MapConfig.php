@@ -45,6 +45,17 @@ final readonly class MapConfig
     private const string SELECTED_OUTLINE = '#000000';
 
     /**
+     * The colour of a group that may hold more than one data set.
+     */
+    private const string MIXED_CLUSTER = '#4a4a6a';
+
+    /**
+     * How much wider than what it zooms to the view ends up. The widget's own
+     * 1.2 leaves a shape almost touching the edges of the map.
+     */
+    private const float ZOOM_BUFFER = 1.8;
+
+    /**
      * How much larger a point is drawn once selected. Enough to grow past
      * whatever it is sitting on rather than merely change colour under it.
      */
@@ -54,6 +65,11 @@ final readonly class MapConfig
      * The name of the element on the page that the layer toggles render into.
      */
     public const string TOGGLES_ELEMENT = 'layers';
+
+    /**
+     * Stands for every data set at once, when they are asked for together.
+     */
+    public const string COMBINED_ID = 'all';
 
     /**
      * How far apart, in pixels, points have to be before they are drawn as
@@ -95,10 +111,18 @@ final readonly class MapConfig
         $layers = $base['map']['layer'] ?? [];
         $colour = 0;
 
+        $shades = $this->shades($sources);
         foreach ($this->ordered($sources) as $id => $source) {
-            $layers[] = $this->layer($id, $source, $dataUrl($id), self::COLOURS[$colour % count(self::COLOURS)]);
-            ++$colour;
+            $layers[] = [
+                ...$this->layer($id, $source, $dataUrl($id), $shades[$id]),
+                // The grouped view of the same points is drawn instead while
+                // the map is far enough out for them to pile up.
+                'minResolution' => 0,
+                'maxResolution' => self::CLUSTER_UNTIL_RESOLUTION,
+            ];
         }
+
+        $layers[] = $this->clusterLayer($dataUrl(self::COMBINED_ID), $shades);
 
         $base['map']['layer'] = $layers;
 
@@ -118,6 +142,10 @@ final readonly class MapConfig
                 'type' => 'cloud',
                 'multifeature' => self::FEATURES_PER_CLICK,
                 'className' => 'widget-simple-popup',
+                // Zooming to what was clicked stops just short of its edges,
+                // so the thing keeps some map around it rather than filling
+                // the frame corner to corner.
+                'zoomOptions' => ['activateZoom' => true, 'buffer' => self::ZOOM_BUFFER],
             ],
             'layerswitch' => [
                 'detach' => self::TOGGLES_ELEMENT,
@@ -134,6 +162,9 @@ final readonly class MapConfig
                 // the list entirely, which for layers drawn from plain GeoJSON
                 // means all of them: without this the switch renders empty.
                 'showLayersWithoutLegend' => true,
+                // The grouped view is how the data sets are drawn far out,
+                // not a data set of its own to be switched.
+                'excludeLayers' => [self::COMBINED_ID],
                 // Without this the entries are rendered as plain text and
                 // explicitly disabled — listed, but not something you can
                 // switch. With it they take a click, and tabindex gives them
@@ -183,45 +214,91 @@ final readonly class MapConfig
     }
 
     /**
-     * Points that land on the same spot drawn as a single marker carrying
-     * their count, rather than as an unreadable pile.
+     * The colour each data set is drawn in, by id.
      *
-     * Told to lay them out in a grid the widget scatters them across the map
-     * instead, which says less than the count does. What a cluster hides is
-     * reached by zooming in, or by the popup taking more than one feature.
+     * @param array<string, SourceInterface> $sources
      *
-     * Only for a data set of points: clustering reduces a feature to the spot
-     * it sits at, and an area has no such spot — handed one, the widget stops
-     * drawing the layer at all.
+     * @return array<string, string>
+     */
+    private function shades(array $sources): array
+    {
+        $shades = [];
+        foreach (array_keys($this->ordered($sources)) as $position => $id) {
+            $shades[$id] = self::COLOURS[$position % count(self::COLOURS)];
+        }
+
+        return $shades;
+    }
+
+    /**
+     * The one layer that groups coinciding points, whichever data set they
+     * came from.
+     *
+     * A layer groups only its own features, so counting across data sets
+     * means holding them in one layer. What separates them there is the
+     * attribute each feature carries rather than the layer it sits in, which
+     * the style reads per feature.
+     *
+     * @param array<string, string> $shades
      *
      * @return array<string, mixed>
      */
-    private function clustering(SourceInterface $source, string $colour): array
+    private function clusterLayer(string $url, array $shades): array
     {
-        if (1 === self::drawsAreas($source)) {
-            return [];
-        }
-
-        return ['cluster' => [
-            'distance' => self::CLUSTER_DISTANCE,
-            // Below this the widget draws the points themselves instead,
-            // keeping the two as one layer and one entry in the switch.
+        return [
+            'id' => self::COMBINED_ID,
+            'name' => 'Alle datasæt',
+            'type' => 'geojson',
+            'features' => true,
+            'features_host' => $url,
+            'visible' => true,
+            'srs' => 'EPSG:4326',
+            'zIndex' => self::Z_POINTS,
             'minResolution' => self::CLUSTER_UNTIL_RESOLUTION,
+            'cluster' => [
+                'distance' => self::CLUSTER_DISTANCE,
+                'features_style' => [
+                    'symbol' => 'circle',
+                    'radius' => self::CLUSTER_RADIUS,
+                    'radius_selected' => self::CLUSTER_RADIUS + 2,
+                    // A group can hold more than one data set, so it is drawn
+                    // in neither of their colours rather than in a colour that
+                    // would claim it belongs to one of them.
+                    'fillcolor' => self::MIXED_CLUSTER,
+                    'fillopacity' => 0.95,
+                    'strokecolor' => self::darken(self::MIXED_CLUSTER),
+                    'strokewidth' => 1.5,
+                ],
+            ],
             'features_style' => [
                 'symbol' => 'circle',
-                // A fixed size. Left to itself the widget scales the marker
-                // by how much it stands for, and a cluster of a couple of
-                // hundred becomes a disc that swallows the streets and every
-                // neighbouring feature around it. The count is inside the
-                // marker already, and says the same thing without the size.
-                'radius' => self::CLUSTER_RADIUS,
-                'radius_selected' => self::CLUSTER_RADIUS + 2,
-                'fillcolor' => $colour,
-                'fillopacity' => 0.95,
-                'strokecolor' => self::darken($colour),
-                'strokewidth' => 1.5,
+                'radius' => self::POINT_RADIUS,
+                'radius_selected' => self::POINT_RADIUS + self::SELECTED_GROWTH,
+                'fillcolor' => self::shadeTemplate($shades),
+                'fillcolor_selected' => self::shadeTemplate($shades),
+                'fillopacity' => 0.9,
+                'fillopacity_selected' => 1,
+                'strokecolor' => self::SELECTED_OUTLINE,
+                'strokecolor_selected' => self::SELECTED_OUTLINE,
+                'strokewidth' => 1,
+                'strokewidth_selected' => 5,
             ],
-        ]];
+        ];
+    }
+
+    /**
+     * A style value worked out per feature, from the data set it names.
+     *
+     * @param array<string, string> $shades
+     */
+    private static function shadeTemplate(array $shades): string
+    {
+        $template = '';
+        foreach ($shades as $id => $shade) {
+            $template .= sprintf('<%% if (dataset === %s) { print(%s) } %%>', json_encode($id), json_encode($shade));
+        }
+
+        return $template;
     }
 
     /**
@@ -240,7 +317,6 @@ final readonly class MapConfig
             'srs' => 'EPSG:4326',
             'zIndex' => 1 === self::drawsAreas($source) ? self::Z_AREAS : self::Z_POINTS,
             'template_info' => $this->template($source, $colour),
-            ...$this->clustering($source, $colour),
             'features_style' => [
                 'symbol' => 'circle',
                 'symbol_selected' => 'circle',
