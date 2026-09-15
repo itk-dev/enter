@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Broker\PagedBrokerReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +15,12 @@ final class DataController extends AbstractController
     private const string FORMAT_GEOJSON = 'geojson';
 
     private const string APPLICATION_GEOJSON = 'application/geo+json';
+    private const string APPLICATION_JSON = 'application/json';
+
+    /**
+     * Asks for the complete set rather than the page the broker defaults to.
+     */
+    private const string PARAMETER_ALL = 'all';
 
     #[Route(
         path: '/data/{path}.{_format}',
@@ -27,6 +34,7 @@ final class DataController extends AbstractController
     )]
     public function index(Request $request, string $path, string $_format,
         HttpClientInterface $brokerClient,
+        PagedBrokerReader $pagedReader,
     ): JsonResponse {
         $path = '/'.ltrim($path, '/');
         $headers = $request->headers->all();
@@ -41,8 +49,25 @@ final class DataController extends AbstractController
                 && !str_starts_with($name, 'x-forwarded-'),
             ARRAY_FILTER_USE_KEY
         );
+        $query = $request->query->all();
+
+        // Opting in is left to the caller: a client that pages for itself
+        // passes its own limit and offset, and answering those with the whole
+        // set instead would break it.
+        if ($request->query->getBoolean(self::PARAMETER_ALL)) {
+            unset($query[self::PARAMETER_ALL]);
+
+            return new JsonResponse(
+                data: $pagedReader->readAll($path, $query, $headers),
+                headers: ['content-type' => match ($_format) {
+                    self::FORMAT_GEOJSON => self::APPLICATION_GEOJSON,
+                    default => self::APPLICATION_JSON,
+                }],
+            );
+        }
+
         $response = $brokerClient->request($request->getMethod(), $path, [
-            'query' => $request->query->all(),
+            'query' => $query,
             'headers' => $headers,
         ]);
 
