@@ -2,6 +2,10 @@
 
 namespace App\Controller;
 
+use App\SourceManager;
+use App\Test\Map\MapConfig;
+use App\Test\Map\SourceFeatures;
+use App\Test\Source\TestDefinition;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\When;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -12,6 +16,7 @@ use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Yaml\Yaml;
 
@@ -25,6 +30,8 @@ final class TestController extends AbstractController
 
     private const string APPLICATION_GEOJSON = 'application/geo+json';
     private const string APPLICATION_JSON = 'application/json';
+
+    private const string TYPE_ON_STREET_PARKING = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking';
 
     #[Route('/{path}', name: 'default', requirements: ['path' => Requirement::CATCH_ALL], methods: [Request::METHOD_GET], priority: -99)]
     public function index(?string $path = null): Response
@@ -65,14 +72,70 @@ final class TestController extends AbstractController
     public function config(
         #[MapQueryParameter('type')]
         string $type,
+        SourceManager $manager,
+        MapConfig $mapConfig,
+        UrlGeneratorInterface $urlGenerator,
     ): JsonResponse {
         $configName = match ($type) {
-            'https://smartdatamodels.org/dataModel.Parking/OnStreetParking' => 'Parking/OnStreetParking',
+            self::TYPE_ON_STREET_PARKING => 'Parking/OnStreetParking',
             default => throw new BadRequestHttpException('Invalid type'),
         };
 
-        $data = Yaml::parseFile(__DIR__.'/../../tests/resources/config/'.$configName.'.yaml');
+        $base = Yaml::parseFile(__DIR__.'/../../tests/resources/config/'.$configName.'.yaml');
 
-        return new JsonResponse($data);
+        return new JsonResponse($mapConfig->build(
+            $base,
+            $this->testSources($manager),
+            static fn (string $id): string => $urlGenerator->generate('test_map', [
+                'sourceId' => $id,
+                '_format' => self::FORMAT_GEOJSON,
+                'type' => $type,
+            ])
+        ));
+    }
+
+    /**
+     * The features of one test source, as a layer of its own.
+     *
+     * Every source publishes into the same model, so the map cannot ask the
+     * broker for one data set at a time: what separates them is an attribute
+     * the broker expanded against a default vocabulary and can no longer be
+     * queried on. Splitting them here is what lets each become a layer that
+     * carries its own colour and can be switched off.
+     */
+    #[Route(
+        path: '/map/{sourceId}.{_format}',
+        name: 'map',
+        methods: [Request::METHOD_GET],
+        requirements: ['sourceId' => '[^/]+', '_format' => self::FORMAT_GEOJSON],
+        defaults: ['_format' => self::FORMAT_GEOJSON],
+    )]
+    public function map(
+        string $sourceId,
+        #[MapQueryParameter('type')]
+        string $type,
+        SourceManager $manager,
+        SourceFeatures $features,
+    ): JsonResponse {
+        $sources = $this->testSources($manager);
+        if (!isset($sources[$sourceId])) {
+            throw new NotFoundHttpException(sprintf('No test source "%s".', $sourceId));
+        }
+
+        return new JsonResponse(
+            $features->forSource($sources[$sourceId], $type),
+            headers: ['content-type' => self::APPLICATION_GEOJSON],
+        );
+    }
+
+    /**
+     * @return array<string, \App\Source\SourceInterface>
+     */
+    private function testSources(SourceManager $manager): array
+    {
+        return array_filter(
+            $manager->getSources(),
+            static fn ($source): bool => $source->definition instanceof TestDefinition
+        );
     }
 }
