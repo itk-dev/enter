@@ -48,6 +48,18 @@ final class NgsiEntity
     }
 
     /**
+     * Source fields the model has no attribute for, gathered under one term.
+     *
+     * @param array<string, mixed> $fields
+     */
+    public function additionalInformation(array $fields): self
+    {
+        $isPresent = static fn (mixed $value): bool => null !== $value && '' !== $value;
+
+        return $this->setProperty('additionalInformation', array_filter($fields, $isPresent));
+    }
+
+    /**
      * @param array{type: string, coordinates: mixed} $geoJson
      */
     public function geoProperty(string $name, array $geoJson): self
