@@ -32,7 +32,66 @@
         })();
     </script>
 
-    {# <script src="https://widget.cdn.septima.dk/3.23.0/widgetconfig.js"></script> #}
-    {# https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
-    <script src="https://widget.cdn.septima.dk/3.19.0/widgetconfig.js"></script>
+    {# Built here rather than by the widget's own loader, which creates the
+       widget and keeps no reference to it. Holding one is what lets a click
+       on a group of points zoom to where they are.
+       The version is pinned: https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
+    <script type="module">
+        import Widget from 'https://widget.cdn.septima.dk/3.19.0/widgetapi.mjs';
+
+        // How much map is left around a group once zoomed to it, in pixels.
+        const PADDING = 90;
+
+        // A group of points all at one spot has no extent to speak of, so the
+        // zoom stops here rather than running to the map's own limit.
+        const CLOSEST = 0.4;
+
+        const members = feature => feature.get('features') ?? [];
+
+        const extentOf = features => features.reduce((extent, feature) => {
+            const own = feature.getGeometry().getExtent();
+
+            return extent === null ? [...own] : [
+                Math.min(extent[0], own[0]),
+                Math.min(extent[1], own[1]),
+                Math.max(extent[2], own[2]),
+                Math.max(extent[3], own[3]),
+            ];
+        }, null);
+
+        // A group says how many points are under it but not where they are.
+        // Clicking it moves to where they are, which is the only way to reach
+        // them short of guessing at the zoom.
+        const zoomToGroup = (map, coordinate) => {
+            let grouped = null;
+
+            map.forEachFeatureAtPixel(
+                map.getPixelFromCoordinate(coordinate),
+                feature => { grouped ??= members(feature).length > 1 ? members(feature) : null; },
+                { hitTolerance: 6 }
+            );
+
+            if (grouped === null) {
+                return false;
+            }
+
+            map.getView().fit(extentOf(grouped), {
+                padding: [PADDING, PADDING, PADDING, PADDING],
+                minResolution: CLOSEST,
+                duration: 350,
+            });
+
+            return true;
+        };
+
+        const widget = new Widget(document.querySelector('.test-map'));
+
+        widget.on('click', (event, control, features, coordinate) => {
+            if (control?.map && coordinate) {
+                zoomToGroup(control.map, coordinate);
+            }
+        });
+
+        window.enterMap = widget;
+    </script>
 {% endblock %}
