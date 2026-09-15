@@ -80,6 +80,29 @@ class MapConfigTest extends TestCase
         $this->assertNotEmpty($config['map']['layer'][1]['template_info']);
     }
 
+    public function testItDrawsPointsSmallEnoughToTellApart(): void
+    {
+        $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
+        $style = $config['map']['layer'][1]['features_style'];
+
+        $this->assertLessThan(5, $style['radius']);
+        $this->assertGreaterThan($style['radius'], $style['radius_selected']);
+    }
+
+    /**
+     * Points on the same spot are one icon until clicked, so the grid is what
+     * gives each of them somewhere to be picked from.
+     */
+    public function testItFansOverlappingPointsOutOnClick(): void
+    {
+        $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
+
+        $grid = $config['map']['layer'][1]['cluster']['grid'];
+
+        $this->assertGreaterThan(0, $grid['spacing']);
+        $this->assertGreaterThan(1, $grid['maxGridIcons']);
+    }
+
     public function testItPointsEachLayerAtItsOwnFeatures(): void
     {
         $config = $this->build([
