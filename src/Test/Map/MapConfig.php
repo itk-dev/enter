@@ -57,6 +57,19 @@ final readonly class MapConfig
     private const int CLUSTER_DISTANCE = 80;
 
     /**
+     * The size of a cluster marker, whatever it stands for.
+     */
+    private const int CLUSTER_RADIUS = 13;
+
+    /**
+     * The resolution, in metres per pixel, at which points stop being grouped.
+     * Zoomed in this far the bays are metres apart on screen and stand on
+     * their own; a marker saying "2" tells the reader less than the two
+     * points it is hiding.
+     */
+    private const float CLUSTER_UNTIL_RESOLUTION = 2.0;
+
+    /**
      * Where each kind of layer sits in the stack. A point covered by an area
      * cannot be seen, let alone seen to be selected, so points are given the
      * higher place outright rather than left to the order layers arrive in.
@@ -185,8 +198,18 @@ final readonly class MapConfig
 
         return ['cluster' => [
             'distance' => self::CLUSTER_DISTANCE,
+            // Below this the widget draws the points themselves instead,
+            // keeping the two as one layer and one entry in the switch.
+            'minResolution' => self::CLUSTER_UNTIL_RESOLUTION,
             'features_style' => [
                 'symbol' => 'circle',
+                // A fixed size. Left to itself the widget scales the marker
+                // by how much it stands for, and a cluster of a couple of
+                // hundred becomes a disc that swallows the streets and every
+                // neighbouring feature around it. The count is inside the
+                // marker already, and says the same thing without the size.
+                'radius' => self::CLUSTER_RADIUS,
+                'radius_selected' => self::CLUSTER_RADIUS + 2,
                 'fillcolor' => $colour,
                 'fillopacity' => 0.95,
                 'strokecolor' => self::darken($colour),
@@ -206,11 +229,16 @@ final readonly class MapConfig
             'title' => $source->definition->title,
             'type' => 'geojson',
             'features' => true,
-            'features_host' => $url,
+            // The widget reads this as a template and fills in the view it is
+            // about to draw, then asks again whenever that view changes. Only
+            // what is on screen is fetched, which is what keeps the map usable
+            // as the data grows past what a single response should carry.
+            'features_host' => $url.'&bbox=<%= bbox %>',
+            'loadingstrategy' => 'bbox',
             'visible' => true,
             'srs' => 'EPSG:4326',
             'zIndex' => 1 === self::drawsAreas($source) ? self::Z_AREAS : self::Z_POINTS,
-            'template_info' => $this->template($source),
+            'template_info' => $this->template($source, $colour),
             ...$this->clustering($source, $colour),
             'features_style' => [
                 'symbol' => 'circle',
@@ -244,9 +272,12 @@ final readonly class MapConfig
      * The popup, rendered per feature by the widget's own templating.
      *
      * Which attributes an entity carries is the source's business, so the
-     * template walks whatever arrived rather than naming fields.
+     * template walks whatever arrived rather than naming fields. A click on
+     * overlapping features answers with a section each, so every one carries
+     * the colour of the layer it came from: without it the sections say which
+     * data set they belong to but not which shape on the map they are.
      */
-    private function template(SourceInterface $source): string
+    private function template(SourceInterface $source, string $colour): string
     {
         $title = $source->definition instanceof TestDefinition
             ? $source->definition->title
@@ -261,11 +292,13 @@ final readonly class MapConfig
         // which is anything a reader asked for. Only the attributes the
         // source published are shown; the source itself is what the heading
         // already says.
-        return '<div class="widget-simple-title">'.htmlspecialchars($title, ENT_QUOTES).'</div>'
+        return '<div class="widget-simple-title">'
+            .'<span class="test-map-swatch" style="background:'.$colour.'"></span>'
+            .htmlspecialchars($title, ENT_QUOTES).'</div>'
             .'<dl class="test-map-details">'
             .'<% Object.keys(obj).filter(function (key) {'
             .' return key.charAt(0) !== "_"'
-            .' && ["geometry", "source"].indexOf(key) === -1'
+            .' && ["geometry", "source", "features"].indexOf(key) === -1'
             .' && obj[key] !== null && obj[key] !== "" && obj[key] !== undefined;'
             .' }).forEach(function (key) { %>'
             .'<dt><%= key %></dt>'
