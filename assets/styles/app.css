@@ -80,6 +80,16 @@
     overflow-wrap: anywhere;
 }
 
+.test-map-swatch {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-right: 0.4rem;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    border-radius: 50%;
+    vertical-align: baseline;
+}
+
 .widget-simple-popup .widget-simple-title {
     font-size: 0.95rem;
     font-weight: 700;

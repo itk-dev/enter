@@ -119,6 +119,9 @@ class MapConfigTest extends TestCase
 
         $this->assertArrayNotHasKey('grid', $cluster);
         $this->assertArrayHasKey('features_style', $cluster);
+        // Close in the points stand apart on their own, and a marker saying
+        // "2" tells the reader less than the two points it hides.
+        $this->assertGreaterThan(0, $cluster['minResolution']);
     }
 
     /**
@@ -147,6 +150,19 @@ class MapConfigTest extends TestCase
         $this->assertNotNull($this->control($config, 'layerswitch'));
     }
 
+    /**
+     * Fetching every feature for every view stops being viable as the data
+     * grows, so the layer asks for the extent it is about to draw.
+     */
+    public function testItFetchesOnlyWhatTheViewNeeds(): void
+    {
+        $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
+        $layer = $config['map']['layer'][1];
+
+        $this->assertSame('bbox', $layer['loadingstrategy']);
+        $this->assertStringContainsString('bbox=', $layer['features_host']);
+    }
+
     public function testItPointsEachLayerAtItsOwnFeatures(): void
     {
         $config = $this->build([
@@ -154,8 +170,8 @@ class MapConfigTest extends TestCase
             'b' => $this->source('B', 'https://b.example/feed'),
         ]);
 
-        $this->assertSame('/features/a', $config['map']['layer'][1]['features_host']);
-        $this->assertSame('/features/b', $config['map']['layer'][2]['features_host']);
+        $this->assertStringStartsWith('/features/a', $config['map']['layer'][1]['features_host']);
+        $this->assertStringStartsWith('/features/b', $config['map']['layer'][2]['features_host']);
     }
 
     /**
