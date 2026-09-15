@@ -7,7 +7,7 @@ namespace App\Test\Source\Osm;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
-use App\Source\Definition;
+use App\Source\DataType;
 use App\Test\Source\TestDefinition;
 use Symfony\Component\DependencyInjection\Attribute\When;
 
@@ -25,6 +25,7 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     // parking space (parking_space=disabled) or as reserving bays for
     // disabled parking (capacity:disabled, excluding "no" and "0").
     accessUrl: 'http://nginx:8080/test/data/overpass-api.de/api/interpreter?osm-handicap-parking',
+    dataType: DataType::Overpass,
     mediaType: 'application/json',
     crs: 'EPSG:4326',
     model: 'OnStreetParking',
@@ -48,11 +49,6 @@ use Symfony\Component\DependencyInjection\Attribute\When;
 )]
 final class TestHandicapParking extends AbstractSource
 {
-    public function __construct(
-        private readonly Wgs84Transformer $transformer,
-    ) {
-    }
-
     /**
      * Maps one feed record onto an NgsiEntity.
      *
@@ -87,7 +83,7 @@ final class TestHandicapParking extends AbstractSource
             ->setProperty('category', $this->category($tags))
             ->setProperty('totalSpotNumber', $this->reservedBays($tags))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $this->transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry));
     }
 
     /**

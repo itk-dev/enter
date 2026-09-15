@@ -20,32 +20,11 @@ final class SourceReader implements SourceReaderInterface
     public function read(SourceInterface $source): iterable
     {
         // @todo Add some proper exception handling/logging.
-        $data = $this->getData($source->definition->accessUrl);
-
-        return $data;
-    }
-
-    /**
-     * @param string|array{
-     *       url: string,
-     *       query: array<string, mixed>
-     * } $url
-     *
-     * @return iterable<mixed>
-     */
-    private function getData(string|array $url): iterable
-    {
         // @todo Cache request responses.
-        $query = [];
-        if (is_array($url)) {
-            [
-                'url' => $url,
-                'query' => $query,
-            ] = $url;
-        }
+        $definition = $source->definition;
 
-        return $this->client->request('GET', $url, [
-            'query' => $query,
+        return $this->client->request('GET', $definition->accessUrlBase(), [
+            'query' => $definition->accessUrlQuery(),
         ])->toArray();
     }
 
