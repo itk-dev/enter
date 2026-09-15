@@ -13,7 +13,9 @@ map:
     layer:
         - namedlayer: "#septima_standard"
 
-        - features_host: "/data/ngsi-ld/v1/entities.geojson?type=https://smartdatamodels.org/dataModel.Parking/OnStreetParking"
+          # "all" makes the proxy follow the broker's paging; without it only
+          # the broker's first page of entities reaches the map.
+        - features_host: "/data/ngsi-ld/v1/entities.geojson?type=https://smartdatamodels.org/dataModel.Parking/OnStreetParking&all=1"
 
           # THe undocumented property src is needed to display GeoJSON!
           srs: "EPSG:4326"
