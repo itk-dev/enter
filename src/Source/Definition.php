@@ -59,10 +59,6 @@ readonly class Definition
 
     /**
      * The URL to request, without the query parameters.
-     *
-     * A source that has to spell out a long query — an Overpass QL script,
-     * say — declares it as a separate array rather than percent-encoding it
-     * into the URL by hand.
      */
     public function accessUrlBase(): string
     {
