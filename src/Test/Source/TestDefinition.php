@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Test\Source;
 
+use App\Source\DataType;
 use App\Source\Definition;
 
 #[\Attribute(\Attribute::TARGET_CLASS)]
@@ -13,6 +14,7 @@ readonly class TestDefinition extends Definition
         string $id,
         string $title,
         string $accessUrl,
+        DataType $dataType,
         string $mediaType,
         string $crs,
         string $model,
@@ -28,6 +30,7 @@ readonly class TestDefinition extends Definition
             contact: '',
             landingPage: '',
             accessUrl: $accessUrl,
+            dataType: $dataType,
             mediaType: $mediaType,
             crs: $crs,
             model: $model,

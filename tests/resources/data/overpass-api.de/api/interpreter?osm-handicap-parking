@@ -2,8 +2,8 @@
   "version": 0.6,
   "generator": "Overpass API 0.7.62.11 87bfad18",
   "osm3s": {
-    "timestamp_osm_base": "2026-09-14T18:28:38Z",
-    "timestamp_areas_base": "2026-09-13T09:23:35Z",
+    "timestamp_osm_base": "2026-09-15T08:07:27Z",
+    "timestamp_areas_base": "2026-09-14T02:10:25Z",
     "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
   },
   "elements": [
@@ -2254,6 +2254,17 @@
   "id": 14180977139,
   "lat": 56.1763075,
   "lon": 10.1382785,
+  "tags": {
+    "amenity": "parking_space",
+    "capacity": "1",
+    "parking_space": "disabled"
+  }
+},
+{
+  "type": "node",
+  "id": 14182120499,
+  "lat": 56.2677701,
+  "lon": 10.3121203,
   "tags": {
     "amenity": "parking_space",
     "capacity": "1",
