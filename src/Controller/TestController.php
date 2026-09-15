@@ -114,8 +114,6 @@ final class TestController extends AbstractController
         string $sourceId,
         #[MapQueryParameter('type')]
         string $type,
-        #[MapQueryParameter('bbox')]
-        ?string $bbox,
         SourceManager $manager,
         SourceFeatures $features,
     ): JsonResponse {
@@ -125,23 +123,9 @@ final class TestController extends AbstractController
         }
 
         return new JsonResponse(
-            $features->forSource($sources[$sourceId], $type, $this->bbox($bbox)),
+            $features->forSource($sources[$sourceId], $type),
             headers: ['content-type' => self::APPLICATION_GEOJSON],
         );
-    }
-
-    /**
-     * @return list<float>|null
-     */
-    private function bbox(?string $bbox): ?array
-    {
-        if (null === $bbox || '' === $bbox) {
-            return null;
-        }
-
-        $corners = array_map(floatval(...), explode(',', $bbox));
-
-        return 4 === count($corners) ? $corners : null;
     }
 
     /**

@@ -15,3 +15,8 @@ map:
     # not known until the container has them.
     layer:
         - namedlayer: "#septima_standard"
+          # Tiles for the zoom levels either side, and room to keep the ones
+          # already fetched, so a zoom draws from the cache instead of
+          # stalling on the network for every step.
+          preload: 3
+          cacheSize: 1024
