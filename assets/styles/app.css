@@ -1,0 +1,27 @@
+.test-map-details {
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.test-map-details th,
+.test-map-details td {
+    padding: 0.1rem 0.5rem 0.1rem 0;
+    text-align: left;
+    vertical-align: top;
+}
+
+.test-map-details th {
+    color: #555;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.test-map-details td {
+    word-break: break-word;
+}
+
+.widget-simple-popup .widget-simple-title {
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}

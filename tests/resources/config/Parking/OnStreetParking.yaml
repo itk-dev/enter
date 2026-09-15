@@ -10,18 +10,8 @@ map:
         # x: 10.214391917362704,
         # y: 56.153720859591054
 
+    # Only the background belongs here. One feature layer per test source is
+    # added when the configuration is served, since which sources exist is
+    # not known until the container has them.
     layer:
         - namedlayer: "#septima_standard"
-
-          # "all" makes the proxy follow the broker's paging; without it only
-          # the broker's first page of entities reaches the map.
-        - features_host: "/data/ngsi-ld/v1/entities.geojson?type=https://smartdatamodels.org/dataModel.Parking/OnStreetParking&all=1"
-
-          # THe undocumented property src is needed to display GeoJSON!
-          srs: "EPSG:4326"
-
-          visible: true
-          features: true
-
-          features_style:
-              - namedstyle: "#001"

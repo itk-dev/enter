@@ -46,6 +46,7 @@ tasks:
       - task: test:broker
       - task: test:geo
       - task: test:source
+      - task: test:test
 
   test:unit: &test_task
     env:
@@ -59,6 +60,7 @@ tasks:
   test:broker: *test_task
   test:geo: *test_task
   test:source: *test_task
+  test:test: *test_task
 
   import:
     desc: 'Import a source into the broker, e.g. `task {{.TASK}} -- mtm_spatialmaps-handicap-parking`'
