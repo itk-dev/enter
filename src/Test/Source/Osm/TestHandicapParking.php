@@ -58,7 +58,7 @@ final class TestHandicapParking extends AbstractSource
      *
      * @param array<string, mixed> $data Overpass JSON element
      */
-    public function createNgsiEntity(array $data): ?NgsiEntity
+    public function createNgsiEntity(array $data, Wgs84Transformer $transformer): ?NgsiEntity
     {
         $type = $data['type'] ?? null;
         $id = $data['id'] ?? null;

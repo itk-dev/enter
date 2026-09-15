@@ -46,7 +46,7 @@ final class TestHandicapParking extends AbstractSource
      *
      * @param array<string, mixed> $data GeoJSON Feature
      */
-    public function createNgsiEntity(array $data): ?NgsiEntity
+    public function createNgsiEntity(array $data, Wgs84Transformer $transformer): ?NgsiEntity
     {
         $row = $data['properties'] ?? null;
         $geometry = $data['geometry'] ?? null;
