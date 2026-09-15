@@ -6,6 +6,7 @@ use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -30,6 +31,10 @@ class BrokerEntityDelete
         if ($all) {
             $data = $brokerClient->request(Request::METHOD_GET, '/ngsi-ld/v1/types')->toArray();
             $entityTypes = $data['typeList'] ?? [];
+        } else {
+            if (0 === count($entityTypes)) {
+                throw new RuntimeException('Missing entity types');
+            }
         }
 
         $limit = 1000;

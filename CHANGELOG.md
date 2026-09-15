@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * [PR-24](https://github.com/itk-dev/enter/pull/24)
   Add housing for custom attributes
+* [PR-10](https://github.com/itk-dev/enter/pull/10)
+  Added test data setup
 * [PR-19](https://github.com/itk-dev/enter/pull/19)
   Declare source metadata in an `#[AsDataSource]` attribute on the source class
 * [PR-12](https://github.com/itk-dev/enter/pull/12)
