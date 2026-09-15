@@ -49,9 +49,14 @@
         // How far off a marker still counts as being on it.
         const HIT_TOLERANCE = 6;
 
-        // The marking drawn around whatever a click landed on. Near-black
-        // belongs to no data set, so it reads as "this one" wherever it lands.
-        const MARK = '#000000';
+        // The markings drawn around whatever a click landed on, one colour
+        // each so a popup listing several says which is which. None of them
+        // is a data set's own colour, or the marking would look like the
+        // thing it is marking.
+        const MARKS = [
+            '#000000', '#ff8f00', '#00a152', '#7b1fa2', '#00838f',
+            '#d84315', '#1a237e', '#827717', '#4e342e', '#ad1457',
+        ];
         const MARK_WIDTH = 4;
         const MARK_RADIUS = 9;
 
@@ -61,6 +66,10 @@
 
         // As many as the popup itself will show, so the two agree.
         const MARK_LIMIT = 10;
+
+        // How long to keep looking for the popup the click asked for.
+        const MATCH_TRIES = 25;
+        const MATCH_WAIT = 60;
 
         // How long the map takes to arrive, in milliseconds.
         const MIN_TRAVEL = 450;
@@ -128,7 +137,8 @@
         // marked at all.
         const highlight = (() => {
             let layer = null;
-            let style = null;
+            let make = null;
+            const styles = new Map();
 
             // The drawing classes are the widget's own, reached through what
             // it has already built rather than loaded a second time.
@@ -147,13 +157,20 @@
                 const Circle = one.getImage?.()?.constructor;
                 if (!Stroke || !Circle) return false;
 
-                style = new Style({
-                    stroke: new Stroke({ color: MARK, width: MARK_WIDTH }),
-                    image: new Circle({ radius: MARK_RADIUS, stroke: new Stroke({ color: MARK, width: MARK_WIDTH }) }),
+                make = colour => new Style({
+                    stroke: new Stroke({ color: colour, width: MARK_WIDTH }),
+                    image: new Circle({ radius: MARK_RADIUS, stroke: new Stroke({ color: colour, width: MARK_WIDTH }) }),
                 });
                 layer = new sample.constructor({
                     source: new (sample.getSource().constructor)(),
-                    style: () => style,
+                    style: feature => {
+                        const colour = feature.get('_mark');
+                        if (!styles.has(colour)) {
+                            styles.set(colour, make(colour));
+                        }
+
+                        return styles.get(colour);
+                    },
                     zIndex: MARK_Z,
                 });
                 map.addLayer(layer);
@@ -168,15 +185,28 @@
                 // arrives.
                 prepare(map) { return layer !== null || build(map); },
                 clear() { layer?.getSource().clear(); },
+                // Returns what was marked and in which colour, so the popup
+                // can be told the same thing.
                 show(map, features) {
                     // The layer is built from what a data set is drawn with,
                     // so it cannot be built before there is something drawn.
-                    if (layer === null && !build(map)) return;
+                    if (layer === null && !build(map)) return [];
+
                     const source = layer.getSource();
                     source.clear();
-                    for (const feature of features) {
-                        source.addFeature(new feature.constructor({ geometry: feature.getGeometry().clone() }));
-                    }
+
+                    // Copied rather than built: a feature knows how to copy
+                    // itself, and what a click hands back is not always
+                    // something that can be constructed the same way.
+                    return features.filter(feature => typeof feature.clone === 'function').map((feature, position) => {
+                        const colour = MARKS[position % MARKS.length];
+                        const marked = feature.clone();
+
+                        marked.set('_mark', colour);
+                        source.addFeature(marked);
+
+                        return { id: feature.get('id'), colour };
+                    });
                 },
             };
         })();
@@ -188,8 +218,22 @@
             map.forEachFeatureAtPixel(
                 pixel,
                 feature => {
+                    // The background map is drawn from tiles whose features
+                    // are hit like any other, and marking a stretch of road
+                    // is not what was asked for. They are the ones that come
+                    // back stripped down to what drawing needs.
+                    if (typeof feature.set !== 'function') {
+                        return;
+                    }
+
+                    // Nor the markings themselves, which are on the map like
+                    // anything else and would otherwise be marked again.
+                    if (feature.get('_mark') !== undefined) {
+                        return;
+                    }
+
                     const grouped = members(feature);
-                    hit.push(...(grouped.length > 0 ? grouped : [feature]));
+                    hit.push(...(grouped.length > 0 ? grouped : [feature]).filter(f => f.getGeometry?.()));
                 },
                 { hitTolerance: HIT_TOLERANCE }
             );
@@ -202,11 +246,57 @@
 
             map.forEachFeatureAtPixel(
                 pixel,
-                feature => { grouped ??= members(feature).length > 1 ? members(feature) : null; },
+                feature => {
+                    if (typeof feature.get === 'function') {
+                        grouped ??= members(feature).length > 1 ? members(feature) : null;
+                    }
+                },
                 { hitTolerance: HIT_TOLERANCE }
             );
 
             return grouped;
+        };
+
+        // The popup is built from a template that knows the data set but not
+        // which feature of it this is, so the colours are put on afterwards.
+        // Which section is which is read from the id it prints rather than
+        // from its position, the order being the widget's own business.
+        // The popup is built a moment after the click, so the colours are put
+        // on when it turns up rather than when it was asked for.
+        const matchPopup = (marked, attempt = 0) => {
+            if (marked.length === 0 || attempt > MATCH_TRIES) {
+                return;
+            }
+
+            const popup = [...document.querySelectorAll('.widget-map-popup, .widget-info')]
+                .find(el => window.getComputedStyle(el).display !== 'none' && el.querySelector('.test-map-swatch'));
+
+            if (popup === undefined) {
+                setTimeout(() => matchPopup(marked, attempt + 1), MATCH_WAIT);
+
+                return;
+            }
+
+            for (const swatch of popup.querySelectorAll('.test-map-swatch')) {
+                let node = swatch.parentElement;
+
+                while (node !== null && node !== popup) {
+                    const naming = marked.filter(mark => mark.id && node.textContent.includes(mark.id));
+
+                    if (naming.length === 1) {
+                        swatch.style.background = naming[0].colour;
+                        break;
+                    }
+
+                    // More than one means this is a container of several
+                    // sections, and the section itself has been passed.
+                    if (naming.length > 1) {
+                        break;
+                    }
+
+                    node = node.parentElement;
+                }
+            }
         };
 
         const widget = new Widget(document.querySelector('.test-map'));
@@ -229,7 +319,7 @@
             // is still working through its own layers, and a marking layer
             // appearing among them loses the popup.
             const pixel = map.getPixelFromCoordinate(coordinate);
-            setTimeout(() => highlight.show(map, featuresAt(map, pixel)), 0);
+            setTimeout(() => matchPopup(highlight.show(map, featuresAt(map, pixel))), 0);
         });
 
         // The map itself, which the widget holds but does not hand out. Only
