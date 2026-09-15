@@ -7,6 +7,7 @@ namespace App\Test\Source\MtmSpatialMaps;
 use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use App\Source\AbstractSource;
+use App\Source\DataType;
 use App\Test\Source\TestDefinition;
 use Symfony\Component\DependencyInjection\Attribute\When;
 
@@ -20,6 +21,7 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     id: 'test:mtm_spatialmaps-handicap-parking',
     title: 'Test: Handicapparkering, Aarhus Kommune',
     accessUrl: 'http://nginx:8080/test/data/webkort.aarhuskommune.dk/spatialmap?mtm_spatialmaps-handicap-parking',
+    dataType: DataType::GeoJSON,
     mediaType: 'application/geo+json',
     crs: 'EPSG:25832',
     model: 'OnStreetParking',
@@ -36,17 +38,12 @@ use Symfony\Component\DependencyInjection\Attribute\When;
 )]
 final class TestHandicapParking extends AbstractSource
 {
-    public function __construct(
-        private readonly Wgs84Transformer $transformer,
-    ) {
-    }
-
     /**
      * Maps one feed record onto an NgsiEntity.
      *
      * @param array<string, mixed> $data GeoJSON Feature
      */
-    public function createNgsiEntity(array $data): ?NgsiEntity
+    public function createNgsiEntity(array $data, Wgs84Transformer $transformer): ?NgsiEntity
     {
         $row = $data['properties'] ?? null;
         $geometry = $data['geometry'] ?? null;
@@ -74,7 +71,7 @@ final class TestHandicapParking extends AbstractSource
             ->setProperty('category', ['forDisabled'])
             ->setProperty('totalSpotNumber', (int) ($row['invalidepladser'] ?? 0))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $this->transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry));
     }
 
     /**

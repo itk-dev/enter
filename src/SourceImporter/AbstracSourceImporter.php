@@ -3,22 +3,18 @@
 namespace App\SourceImporter;
 
 use App\Broker\NgsiLdBroker;
+use App\Geo\Wgs84Transformer;
 use App\Import\Exception\UpsertFailedException;
 use App\Import\ImportResult;
 use App\Ngsi\NgsiEntity;
 use App\Source\SourceInterface;
-use App\SourceReader\SourceReaderGeoJson;
+use App\SourceReader\SourceReaderInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LoggerTrait;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-/**
- * Read data from a source and upserts in broker.
- *
- * @todo Get the importer from a factory depending
- */
-class SourceImporterGeoJson implements SourceImporterInterface
+abstract class AbstracSourceImporter implements SourceImporterInterface
 {
     use LoggerAwareTrait;
     use LoggerTrait;
@@ -27,8 +23,9 @@ class SourceImporterGeoJson implements SourceImporterInterface
      * @param list<string> $contextUrls
      */
     public function __construct(
-        private readonly SourceReaderGeoJson $reader,
+        private readonly SourceReaderInterface $reader,
         private readonly NgsiLdBroker $broker,
+        private readonly Wgs84Transformer $transformer,
         #[Autowire(env: 'json:APP_NGSI_CONTEXT_URLS')]
         private readonly array $contextUrls,
         LoggerInterface $logger,
@@ -36,11 +33,18 @@ class SourceImporterGeoJson implements SourceImporterInterface
         $this->setLogger($logger);
     }
 
-    public function supports(SourceInterface $source): bool
-    {
-        // @todo
-        return true;
-    }
+    abstract public function supports(SourceInterface $source): bool;
+
+    /**
+     * Extract items from array data from source.
+     *
+     * Each item must be processable by the source.
+     *
+     * @param iterable<mixed> $data
+     *
+     * @return array<array<string, mixed>>
+     */
+    abstract protected function extractItems(iterable $data, SourceInterface $source): array;
 
     public function import(SourceInterface $source): ImportResult
     {
@@ -74,16 +78,16 @@ class SourceImporterGeoJson implements SourceImporterInterface
     private function read(SourceInterface $source): iterable
     {
         $data = $this->reader->read($source);
-        foreach ($data as $item) {
-            if (is_array($item)) {
-                try {
-                    if ($entity = $source->createNgsiEntity($item)) {
-                        yield $entity;
-                    }
-                } catch (\Exception $e) {
-                    // @todo Log in database?
-                    $this->error('error: {message} ', ['message' => $e->getMessage()]);
+        $items = $this->extractItems($data, $source);
+
+        foreach ($items as $item) {
+            try {
+                if ($entity = $source->createNgsiEntity($item, $this->transformer)) {
+                    yield $entity;
                 }
+            } catch (\Exception $e) {
+                // @todo Log in database?
+                $this->error('error: {message} ', ['message' => $e->getMessage()]);
             }
         }
     }

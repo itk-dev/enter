@@ -13,6 +13,10 @@ namespace App\Source;
 readonly class Definition
 {
     /**
+     * @param string|array{
+     *      url: string,
+     *      query: array<string, mixed>
+     * } $accessUrl
      * @param array<string, string> $omittedFields
      */
     public function __construct(
@@ -22,7 +26,8 @@ readonly class Definition
         public string $publisher,
         public string $contact,
         public string $landingPage,
-        public string $accessUrl,
+        public string|array $accessUrl,
+        public DataType $dataType,
         public string $mediaType,
         public string $crs,
         public string $model,
@@ -53,6 +58,24 @@ readonly class Definition
     }
 
     /**
+     * The URL to request, without the query parameters.
+     */
+    public function accessUrlBase(): string
+    {
+        return is_array($this->accessUrl) ? $this->accessUrl['url'] : $this->accessUrl;
+    }
+
+    /**
+     * The query parameters to send with the request.
+     *
+     * @return array<string, mixed>
+     */
+    public function accessUrlQuery(): array
+    {
+        return is_array($this->accessUrl) ? $this->accessUrl['query'] : [];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -65,6 +88,7 @@ readonly class Definition
             'contact' => $this->contact,
             'landing_page' => $this->landingPage,
             'access_url' => $this->accessUrl,
+            'data_type' => $this->dataType,
             'media_type' => $this->mediaType,
             'crs' => $this->crs,
             'model' => $this->model,

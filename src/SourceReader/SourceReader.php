@@ -7,7 +7,7 @@ use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerTrait;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class SourceReaderGeoJson implements SourceReaderInterface
+final class SourceReader implements SourceReaderInterface
 {
     use LoggerAwareTrait;
     use LoggerTrait;
@@ -20,23 +20,12 @@ class SourceReaderGeoJson implements SourceReaderInterface
     public function read(SourceInterface $source): iterable
     {
         // @todo Add some proper exception handling/logging.
-        $data = $this->getData($source->definition->accessUrl);
+        // @todo Cache request responses.
+        $definition = $source->definition;
 
-        $features = $data['features'];
-
-        if (!is_array($features) || !array_is_list($features)) {
-            throw new \RuntimeException('Invalid features array');
-        }
-
-        return $features;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getData(string $url): iterable
-    {
-        return $this->client->request('GET', $url)->toArray();
+        return $this->client->request('GET', $definition->accessUrlBase(), [
+            'query' => $definition->accessUrlQuery(),
+        ])->toArray();
     }
 
     /**

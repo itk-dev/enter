@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Source;
 
+use App\Geo\Wgs84Transformer;
 use App\Ngsi\NgsiEntity;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
@@ -22,9 +23,11 @@ interface SourceInterface extends \Stringable, \JsonSerializable
     }
 
     /**
+     * Maps one feed record onto an NgsiEntity.
+     *
      * @param array<string, mixed> $data
      */
-    public function createNgsiEntity(array $data): ?NgsiEntity;
+    public function createNgsiEntity(array $data, Wgs84Transformer $transformer): ?NgsiEntity;
 
     /**
      * @return array<string, mixed>

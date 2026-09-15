@@ -37,7 +37,9 @@ class SourceFetchContentCommand
 
             try {
                 $io->section($source);
-                $url = $manager->getSource($definition->sourceId)->definition->accessUrl;
+                $sourceDefinition = $manager->getSource($definition->sourceId)->definition;
+                $url = $sourceDefinition->accessUrlBase();
+                $query = $sourceDefinition->accessUrlQuery();
                 $filename = preg_replace('@^[a-z]+://[^/]+/test/@', '', $definition->accessUrl);
                 $filename = __DIR__.'/../../../tests/resources/'.$filename;
 
@@ -46,7 +48,9 @@ class SourceFetchContentCommand
                 }
 
                 $io->writeln(sprintf('Fetching "%s"', $url));
-                $response = $httpClient->request(Request::METHOD_GET, $url);
+                $response = $httpClient->request(Request::METHOD_GET, $url, [
+                    'query' => $query,
+                ]);
                 $content = $response->getContent();
                 $filesystem->dumpFile($filename, $content);
                 $io->success(sprintf('Content written to file %s', realpath($filename)));

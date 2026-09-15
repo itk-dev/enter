@@ -18,10 +18,14 @@ class SourceListCommand
     ): int {
         $sources = $manager->getSources();
 
-        $io->writeln(sprintf('#sources: %d', \count($sources)));
+        $headers = ['ID', 'Title', 'Data type'];
+        $rows = [];
+        $count = 0;
         foreach ($sources as $source) {
-            $io->writeln((string) $source);
+            $definition = $source->definition;
+            $rows[] = [$definition->id, $definition->title, $definition->dataType->name];
         }
+        $io->table($headers, $rows);
 
         return Command::SUCCESS;
     }
