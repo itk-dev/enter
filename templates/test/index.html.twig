@@ -50,14 +50,16 @@
         const HIT_TOLERANCE = 6;
 
         // The markings drawn around whatever a click landed on, one colour
-        // each so a popup listing several says which is which. None of them
-        // is a data set's own colour, or the marking would look like the
-        // thing it is marking.
+        // each so a popup listing several says which is which. Bright ones:
+        // they are drawn over a map of greys and greens and over the data
+        // sets' own muted reds and blues, and have to be told from both. None
+        // of them is a data set's own colour, or the marking would look like
+        // the thing it is marking.
         const MARKS = [
-            '#000000', '#ff8f00', '#00a152', '#7b1fa2', '#00838f',
-            '#d84315', '#1a237e', '#827717', '#4e342e', '#ad1457',
+            '#ff6d00', '#00e5ff', '#76ff03', '#d500f9', '#ffea00',
+            '#ff1744', '#1de9b6', '#2979ff', '#ff4081', '#b2ff59',
         ];
-        const MARK_WIDTH = 4;
+        const MARK_WIDTH = 3;
         const MARK_RADIUS = 9;
 
         // Above every data set, so an area cannot cover the marking on a point
@@ -95,6 +97,18 @@
         };
 
         const members = feature => feature.get('features') ?? [];
+
+        // Every coordinate of a geometry, whatever its nesting.
+        const coordinatesOf = coordinates => (typeof coordinates[0] === 'number'
+            ? [coordinates]
+            : coordinates.flatMap(coordinatesOf));
+
+        // The top of what was clicked. The popup hangs its bottom edge from
+        // wherever it is put, so anchoring it here leaves the thing it
+        // describes below it rather than underneath it.
+        const northernmost = features => features
+            .flatMap(feature => coordinatesOf(feature.getGeometry().getCoordinates()))
+            .reduce((top, point) => (top === null || point[1] > top[1] ? point : top), null);
 
         const extentOf = features => features.reduce((extent, feature) => {
             const own = feature.getGeometry().getExtent();
@@ -212,7 +226,7 @@
         })();
 
         // What a click landed on, in the order the popup lists it.
-        const featuresAt = (map, pixel) => {
+        const featuresAt = (map, pixel, tolerance) => {
             const hit = [];
 
             map.forEachFeatureAtPixel(
@@ -235,7 +249,7 @@
                     const grouped = members(feature);
                     hit.push(...(grouped.length > 0 ? grouped : [feature]).filter(f => f.getGeometry?.()));
                 },
-                { hitTolerance: HIT_TOLERANCE }
+                { hitTolerance: tolerance }
             );
 
             return hit.slice(0, MARK_LIMIT);
@@ -299,6 +313,40 @@
             }
         };
 
+        // The popup is an overlay of the map's, anchored to a coordinate and
+        // kept there as the map moves, so moving it is a matter of saying
+        // which coordinate rather than of placing it on the screen.
+        const liftPopup = (map, features) => {
+            const top = features.length > 0 ? northernmost(features) : null;
+            if (top === null) {
+                return;
+            }
+
+            const popup = map.getOverlays().getArray()
+                .find(overlay => overlay.getElement()?.classList?.contains('widget-map-popup'));
+
+            popup?.setPosition(top);
+        };
+
+        // Same wait as the colours: the popup is built a moment after the
+        // click, and there is nothing to move until it is.
+        const settlePopup = (map, features, attempt = 0) => {
+            if (features.length === 0 || attempt > MATCH_TRIES) {
+                return;
+            }
+
+            const shown = [...document.querySelectorAll('.widget-map-popup')]
+                .some(el => window.getComputedStyle(el).display !== 'none');
+
+            if (shown) {
+                liftPopup(map, features);
+
+                return;
+            }
+
+            setTimeout(() => settlePopup(map, features, attempt + 1), MATCH_WAIT);
+        };
+
         const widget = new Widget(document.querySelector('.test-map'));
 
         widget.on('click', (event, control, features, coordinate) => {
@@ -319,7 +367,19 @@
             // is still working through its own layers, and a marking layer
             // appearing among them loses the popup.
             const pixel = map.getPixelFromCoordinate(coordinate);
-            setTimeout(() => matchPopup(highlight.show(map, featuresAt(map, pixel))), 0);
+
+            // The map's own reach, so that what is marked and what the popup
+            // lists are the same features rather than nearly the same.
+            const tolerance = typeof control.getHitTolerance === 'function'
+                ? control.getHitTolerance()
+                : HIT_TOLERANCE;
+
+            setTimeout(() => {
+                const found = featuresAt(map, pixel, tolerance);
+
+                matchPopup(highlight.show(map, found));
+                settlePopup(map, found);
+            }, 0);
         });
 
         // The map itself, which the widget holds but does not hand out. Only

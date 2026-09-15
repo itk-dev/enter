@@ -106,6 +106,11 @@ final readonly class MapConfig
         $colour = 0;
 
         $shades = $this->shades($sources);
+        $titles = [];
+        foreach ($sources as $id => $source) {
+            $titles[$id] = $source->definition->title;
+        }
+
         foreach ($this->ordered($sources) as $id => $source) {
             $layers[] = [
                 ...$this->layer($id, $source, $dataUrl($id), $shades[$id]),
@@ -116,7 +121,7 @@ final readonly class MapConfig
             ];
         }
 
-        $layers[] = $this->clusterLayer($dataUrl(self::COMBINED_ID), $shades);
+        $layers[] = $this->clusterLayer($dataUrl(self::COMBINED_ID), $shades, $titles);
 
         $base['map']['layer'] = $layers;
 
@@ -235,10 +240,11 @@ final readonly class MapConfig
      * the style reads per feature.
      *
      * @param array<string, string> $shades
+     * @param array<string, string> $titles
      *
      * @return array<string, mixed>
      */
-    private function clusterLayer(string $url, array $shades): array
+    private function clusterLayer(string $url, array $shades, array $titles): array
     {
         return [
             'id' => self::COMBINED_ID,
@@ -250,6 +256,10 @@ final readonly class MapConfig
             'srs' => 'EPSG:4326',
             'zIndex' => self::Z_POINTS,
             'minResolution' => self::CLUSTER_UNTIL_RESOLUTION,
+            // A feature the popup has no template for is left out of it, and
+            // a lone point far out is drawn from here rather than from its own
+            // data set's layer: without this, clicking one says nothing.
+            'template_info' => $this->body(self::shadeTemplate($shades), self::valueTemplate($titles, 'dataset')),
             'cluster' => [
                 'distance' => self::CLUSTER_DISTANCE,
                 'features_style' => [
@@ -288,9 +298,19 @@ final readonly class MapConfig
      */
     private static function shadeTemplate(array $shades): string
     {
+        return self::valueTemplate($shades, 'dataset');
+    }
+
+    /**
+     * A value chosen per feature, from the attribute naming its data set.
+     *
+     * @param array<string, string> $values
+     */
+    private static function valueTemplate(array $values, string $attribute): string
+    {
         $template = '';
-        foreach ($shades as $id => $shade) {
-            $template .= sprintf('<%% if (dataset === %s) { print(%s) } %%>', json_encode($id), json_encode($shade));
+        foreach ($values as $id => $value) {
+            $template .= sprintf('<%% if (%s === %s) { print(%s) } %%>', $attribute, json_encode($id), json_encode($value));
         }
 
         return $template;
@@ -356,6 +376,15 @@ final readonly class MapConfig
             ? $source->definition->title
             : $source->definition->id;
 
+        return $this->body($colour, htmlspecialchars($title, ENT_QUOTES));
+    }
+
+    /**
+     * The popup for one feature: a heading naming the data set, then whatever
+     * attributes the feature carries.
+     */
+    private function body(string $colour, string $title): string
+    {
         // Not sprintf: the widget's own template delimiters are per cent
         // signs, which a format string would try to read as placeholders.
         //
@@ -367,7 +396,7 @@ final readonly class MapConfig
         // already says.
         return '<div class="widget-simple-title">'
             .'<span class="test-map-swatch" style="background:'.$colour.'"></span>'
-            .htmlspecialchars($title, ENT_QUOTES).'</div>'
+            .$title.'</div>'
             .'<dl class="test-map-details">'
             .'<% Object.keys(obj).filter(function (key) {'
             .' return key.charAt(0) !== "_"'
