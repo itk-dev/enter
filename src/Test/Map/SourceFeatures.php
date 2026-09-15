@@ -57,7 +57,28 @@ final readonly class SourceFeatures
             }
         }
 
-        return ['type' => 'FeatureCollection', 'features' => $features];
+        return ['type' => 'FeatureCollection', 'features' => $this->areasFirst($features)];
+    }
+
+    /**
+     * The areas before the points, since a layer draws its features in the
+     * order they arrive.
+     *
+     * A source that publishes both — an Overpass feed answers with the
+     * outline of a car park and the single bays beside it — would otherwise
+     * bury its own points under its own outlines, where they can be neither
+     * seen nor picked.
+     *
+     * @param list<array<string, mixed>> $features
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function areasFirst(array $features): array
+    {
+        usort($features, static fn (array $a, array $b): int => (int) ('Point' === ($a['geometry']['type'] ?? null))
+            <=> (int) ('Point' === ($b['geometry']['type'] ?? null)));
+
+        return $features;
     }
 
     /**

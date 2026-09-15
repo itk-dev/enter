@@ -62,11 +62,26 @@ class MapConfigTest extends TestCase
         $this->assertSame('click', $info['eventtype']);
     }
 
-    public function testItOffersALayerSwitchForTogglingDataSets(): void
+    /**
+     * Detaching renders the toggles into an element of the page rather than
+     * over the map. The widget only offers it to a control of the map, which
+     * is also the only place the control can see the layers to list.
+     */
+    public function testItPutsTheTogglesOnThePageRatherThanOverTheMap(): void
     {
         $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
 
-        $this->assertNotNull($this->control($config, 'layerswitch'));
+        $this->assertSame(MapConfig::TOGGLES_ELEMENT, $this->control($config, 'layerswitch')['detach']);
+    }
+
+    /**
+     * The popup is read out of a click by the map, so it has to be the map's.
+     */
+    public function testItLeavesThePopupWithTheMap(): void
+    {
+        $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
+
+        $this->assertArrayHasKey('info', $config['map']['controls'][0]);
     }
 
     /**
@@ -93,14 +108,43 @@ class MapConfigTest extends TestCase
      * Points on the same spot are one icon until clicked, so the grid is what
      * gives each of them somewhere to be picked from.
      */
-    public function testItFansOverlappingPointsOutOnClick(): void
+    /**
+     * Laid out in a grid the widget scatters a cluster's points across the
+     * map; as one marker it just says how many there are.
+     */
+    public function testItDrawsCoincidingPointsAsASingleMarker(): void
+    {
+        $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
+        $cluster = $config['map']['layer'][1]['cluster'];
+
+        $this->assertArrayNotHasKey('grid', $cluster);
+        $this->assertArrayHasKey('features_style', $cluster);
+    }
+
+    /**
+     * Clustering a feature reduces it to the point it sits at, which an area
+     * does not have; handed one, the widget stops drawing the layer.
+     */
+    public function testItLeavesADataSetOfAreasUnclustered(): void
+    {
+        $config = $this->build([
+            'areas' => $this->source('Areas', 'https://overpass-api.de/api/interpreter', DataType::Overpass),
+        ]);
+
+        $this->assertArrayNotHasKey('cluster', $config['map']['layer'][1]);
+    }
+
+    /**
+     * A control belongs to the map: mounted beside it, it never gets hold of
+     * the feature a click landed on.
+     */
+    public function testItDeclaresControlsWhereTheWidgetLooksForThem(): void
     {
         $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
 
-        $grid = $config['map']['layer'][1]['cluster']['grid'];
-
-        $this->assertGreaterThan(0, $grid['spacing']);
-        $this->assertGreaterThan(1, $grid['maxGridIcons']);
+        $this->assertArrayNotHasKey('controls', $config);
+        $this->assertNotNull($this->control($config, 'info'));
+        $this->assertNotNull($this->control($config, 'layerswitch'));
     }
 
     public function testItPointsEachLayerAtItsOwnFeatures(): void
@@ -131,13 +175,13 @@ class MapConfigTest extends TestCase
      */
     private function control(array $config, string $name): ?array
     {
-        foreach ($config['controls'] as $control) {
-            if (isset($control[$name])) {
-                return $control[$name];
+        foreach ($config['map']['controls'] as $group) {
+            if (isset($group[$name])) {
+                return $group[$name];
             }
         }
 
-        return null;
+        return $config[$name] ?? null;
     }
 
     private function source(string $title, string $accessUrl, DataType $dataType = DataType::GeoJSON): SourceInterface

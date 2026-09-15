@@ -67,6 +67,21 @@ class SourceFeaturesTest extends TestCase
         $this->assertArrayNotHasKey('location', $features[0]['properties']);
     }
 
+    /**
+     * A layer draws its features in the order they arrive, so a point that
+     * comes before an area ends up underneath it.
+     */
+    public function testItPutsTheAreasBeforeThePoints(): void
+    {
+        $features = $this->read([
+            $this->feature('point-a', self::MINE),
+            $this->feature('area', self::MINE, 'Polygon'),
+            $this->feature('point-b', self::MINE),
+        ]);
+
+        $this->assertSame(['area', 'point-a', 'point-b'], array_column(array_column($features, 'properties'), 'id'));
+    }
+
     public function testItReturnsAnEmptyCollectionWhenNothingIsTheSourcesOwn(): void
     {
         $features = $this->read([$this->feature('b', self::THEIRS)]);
@@ -97,12 +112,12 @@ class SourceFeaturesTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function feature(string $id, string $source): array
+    private function feature(string $id, string $source, string $geometry = 'Point'): array
     {
         return [
             'id' => $id,
             'type' => 'Feature',
-            'geometry' => ['type' => 'Point', 'coordinates' => [10.2, 56.1]],
+            'geometry' => ['type' => $geometry, 'coordinates' => [10.2, 56.1]],
             'properties' => [
                 'type' => self::TYPE,
                 'https://smartdatamodels.org/dataModel.Parking/totalSpotNumber' => ['type' => 'Property', 'value' => 6],
