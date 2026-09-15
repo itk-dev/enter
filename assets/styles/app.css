@@ -1,0 +1,115 @@
+.test-map-heading {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #666;
+    word-break: break-all;
+}
+
+.test-map-toggles {
+    margin-bottom: 0.5rem;
+}
+
+.test-map-toggles .widget-layerswitch,
+.test-map-toggles [class*="widget-layerswitch"] {
+    position: static;
+    box-shadow: none;
+    max-height: none;
+}
+
+.test-map-toggles .widget-layerswitch-listcontainer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 1.5rem;
+}
+
+.test-map-toggles .widget-layerswitch-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    padding: 0.15rem 0;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.test-map-toggles .widget-layerswitch-container::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 0.95rem;
+    height: 0.95rem;
+    border: 1px solid #767676;
+    border-radius: 3px;
+    background: #fff;
+}
+
+.test-map-toggles .widget-layerswitch-active::before {
+    border-color: #1f5fd0;
+    background: #1f5fd0 linear-gradient(transparent, transparent);
+    box-shadow: inset 0 0 0 2px #fff;
+}
+
+.test-map-toggles .widget-layerswitch-container:focus-visible {
+    outline: 2px solid #1f5fd0;
+    outline-offset: 2px;
+}
+
+.test-map {
+    width: 100%;
+    min-height: 320px;
+}
+
+.test-map .widget-cursor,
+.test-map.widget-cursor {
+    cursor: pointer;
+}
+
+.test-map-details {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.4rem 1.25rem;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.test-map-details dt {
+    color: #555;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.test-map-details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.test-map-swatch {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-right: 0.4rem;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    border-radius: 50%;
+    vertical-align: baseline;
+}
+
+.widget-simple-popup .widget-simple-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    line-height: 1.25;
+}
+
+.widget-simple-popup {
+    max-width: min(90vw, 62rem);
+}
+
+.widget-simple-popup .widget-hoverbox-accordion {
+    padding: 0.7rem 0;
+}
+
+.widget-simple-popup .widget-hoverbox-accordion + .widget-hoverbox-accordion {
+    border-top: 1px solid #e3e3e3;
+}

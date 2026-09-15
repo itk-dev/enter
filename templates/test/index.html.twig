@@ -3,10 +3,404 @@
 {% block content %}
     {% set type = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking' %}
 
-    <h2>{{ type }}</h2>
+    <h2 class="test-map-heading">{{ type }}</h2>
 
-    <div data-widget-url="{{ path('test_config', {type: type}) }}"></div>
-    {# <script src="https://widget.cdn.septima.dk/3.23.0/widgetconfig.js"></script> #}
-    {# https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
-    <script src="https://widget.cdn.septima.dk/3.19.0/widgetconfig.js"></script>
+    {# The layerswitch control is configured to detach into this element, so
+       the data sets get their toggles here rather than over the map. #}
+    <div class="test-map-toggles" data-widget-detach="layers"></div>
+
+    <div class="test-map" data-widget-url="{{ path('test_config', {type: type}) }}"></div>
+
+    {# Sized before the widget initialises, so it lays the map out at the
+       height it will keep rather than resizing under the user. #}
+    <script>
+        (function () {
+            var map = document.querySelector('.test-map');
+            var fit = function () {
+                var top = map.getBoundingClientRect().top + window.scrollY;
+                var height = window.innerHeight - top - 24;
+                map.style.height = Math.max(320, height) + 'px';
+            };
+
+            fit();
+            window.addEventListener('resize', fit);
+            // The heading wraps at narrow widths and the toggles only get
+            // their height once the widget has drawn them, so the first
+            // measurement is rarely the lasting one.
+            window.addEventListener('load', fit);
+            setTimeout(fit, 2000);
+        })();
+    </script>
+
+    {# Built here rather than by the widget's own loader, which creates the
+       widget and keeps no reference to it. Holding one is what lets a click
+       on a group of points zoom to where they are.
+       The version is pinned: https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
+    <script type="module">
+        import Widget from 'https://widget.cdn.septima.dk/3.19.0/widgetapi.mjs';
+
+        // How much map is left around a group once zoomed to it, in pixels.
+        const PADDING = 90;
+
+        // A group of points all at one spot has no extent to speak of, so the
+        // zoom stops here rather than running to the map's own limit.
+        const CLOSEST = 0.4;
+
+        // How far off a marker still counts as being on it.
+        const HIT_TOLERANCE = 6;
+
+        // The markings drawn around whatever a click landed on, one colour
+        // each so a popup listing several says which is which. Bright ones:
+        // they are drawn over a map of greys and greens and over the data
+        // sets' own muted reds and blues, and have to be told from both. None
+        // of them is a data set's own colour, or the marking would look like
+        // the thing it is marking.
+        const MARKS = [
+            '#ff6d00', '#00e5ff', '#76ff03', '#d500f9', '#ffea00',
+            '#ff1744', '#1de9b6', '#2979ff', '#ff4081', '#b2ff59',
+        ];
+        const MARK_WIDTH = 3;
+        const MARK_RADIUS = 9;
+
+        // Above every data set, so an area cannot cover the marking on a point
+        // that happens to sit inside it.
+        const MARK_Z = 3000;
+
+        // As many as the popup itself will show, so the two agree.
+        const MARK_LIMIT = 10;
+
+        // How long to keep looking for the popup the click asked for.
+        const MATCH_TRIES = 25;
+        const MATCH_WAIT = 60;
+
+        // How long the map takes to arrive, in milliseconds.
+        const MIN_TRAVEL = 450;
+        const MAX_TRAVEL = 1100;
+        const PER_LEVEL = 130;
+
+        // Slow at both ends and quickest in the middle, so the map appears to
+        // set off and arrive rather than to cut.
+        const EASING = t => (t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2);
+
+        // Long enough to follow, and longer the further it goes: covering ten
+        // zoom levels in the time of one is what makes a jump hard to read.
+        const travelTime = (map, view, extent) => {
+            const size = map.getSize();
+            const target = Math.max(
+                (extent[2] - extent[0]) / Math.max(1, size[0] - 2 * PADDING),
+                (extent[3] - extent[1]) / Math.max(1, size[1] - 2 * PADDING),
+                CLOSEST
+            );
+            const levels = Math.abs(Math.log2(view.getResolution() / target));
+
+            return Math.min(MAX_TRAVEL, MIN_TRAVEL + levels * PER_LEVEL);
+        };
+
+        const members = feature => feature.get('features') ?? [];
+
+        // Every coordinate of a geometry, whatever its nesting.
+        const coordinatesOf = coordinates => (typeof coordinates[0] === 'number'
+            ? [coordinates]
+            : coordinates.flatMap(coordinatesOf));
+
+        // The top of what was clicked. The popup hangs its bottom edge from
+        // wherever it is put, so anchoring it here leaves the thing it
+        // describes below it rather than underneath it.
+        const northernmost = features => features
+            .flatMap(feature => coordinatesOf(feature.getGeometry().getCoordinates()))
+            .reduce((top, point) => (top === null || point[1] > top[1] ? point : top), null);
+
+        const extentOf = features => features.reduce((extent, feature) => {
+            const own = feature.getGeometry().getExtent();
+
+            return extent === null ? [...own] : [
+                Math.min(extent[0], own[0]),
+                Math.min(extent[1], own[1]),
+                Math.max(extent[2], own[2]),
+                Math.max(extent[3], own[3]),
+            ];
+        }, null);
+
+        // A group says how many points are under it but not where they are.
+        // Clicking it moves to where they are, which is the only way to reach
+        // them short of guessing at the zoom.
+        const zoomToGroup = (map, coordinate) => {
+            const grouped = groupAt(map, map.getPixelFromCoordinate(coordinate));
+
+            if (grouped === null) {
+                return false;
+            }
+
+            const view = map.getView();
+            const extent = extentOf(grouped);
+
+            view.fit(extent, {
+                padding: [PADDING, PADDING, PADDING, PADDING],
+                minResolution: CLOSEST,
+                duration: travelTime(map, view, extent),
+                easing: EASING,
+            });
+
+            return true;
+        };
+
+        // The widget marks what was clicked by drawing it again, selected, in
+        // a layer of its own — but only for features it built itself, which
+        // these are not. So the marking is drawn here, on top of everything,
+        // which is also the only way a point under an area can be seen to be
+        // marked at all.
+        const highlight = (() => {
+            let layer = null;
+            let make = null;
+            const styles = new Map();
+
+            // The drawing classes are the widget's own, reached through what
+            // it has already built rather than loaded a second time.
+            const build = map => {
+                const sample = map.getLayers().getArray()
+                    .flatMap(l => (l.getLayers ? l.getLayers().getArray() : [l]))
+                    .find(l => l.getSource?.()?.getFeatures && l.getSource().getFeatures().length > 0);
+                if (!sample) return false;
+
+                const drawn = sample.getStyle()(sample.getSource().getFeatures()[0], map.getView().getResolution());
+                const one = Array.isArray(drawn) ? drawn[0] : drawn;
+                if (!one) return false;
+
+                const Style = one.constructor;
+                const Stroke = one.getStroke?.()?.constructor ?? one.getImage?.()?.getStroke?.()?.constructor;
+                const Circle = one.getImage?.()?.constructor;
+                if (!Stroke || !Circle) return false;
+
+                make = colour => new Style({
+                    stroke: new Stroke({ color: colour, width: MARK_WIDTH }),
+                    image: new Circle({ radius: MARK_RADIUS, stroke: new Stroke({ color: colour, width: MARK_WIDTH }) }),
+                });
+                layer = new sample.constructor({
+                    source: new (sample.getSource().constructor)(),
+                    style: feature => {
+                        const colour = feature.get('_mark');
+                        if (!styles.has(colour)) {
+                            styles.set(colour, make(colour));
+                        }
+
+                        return styles.get(colour);
+                    },
+                    zIndex: MARK_Z,
+                });
+                map.addLayer(layer);
+
+                return true;
+            };
+
+            return {
+                // Added before any click: putting a layer on the map while
+                // the widget is working through one leaves it iterating a
+                // collection that changed under it, and the popup never
+                // arrives.
+                prepare(map) { return layer !== null || build(map); },
+                clear() { layer?.getSource().clear(); },
+                // Returns what was marked and in which colour, so the popup
+                // can be told the same thing.
+                show(map, features) {
+                    // The layer is built from what a data set is drawn with,
+                    // so it cannot be built before there is something drawn.
+                    if (layer === null && !build(map)) return [];
+
+                    const source = layer.getSource();
+                    source.clear();
+
+                    // Copied rather than built: a feature knows how to copy
+                    // itself, and what a click hands back is not always
+                    // something that can be constructed the same way.
+                    return features.filter(feature => typeof feature.clone === 'function').map((feature, position) => {
+                        const colour = MARKS[position % MARKS.length];
+                        const marked = feature.clone();
+
+                        marked.set('_mark', colour);
+                        source.addFeature(marked);
+
+                        return { id: feature.get('id'), colour };
+                    });
+                },
+            };
+        })();
+
+        // What a click landed on, in the order the popup lists it.
+        const featuresAt = (map, pixel, tolerance) => {
+            const hit = [];
+
+            map.forEachFeatureAtPixel(
+                pixel,
+                feature => {
+                    // The background map is drawn from tiles whose features
+                    // are hit like any other, and marking a stretch of road
+                    // is not what was asked for. They are the ones that come
+                    // back stripped down to what drawing needs.
+                    if (typeof feature.set !== 'function') {
+                        return;
+                    }
+
+                    // Nor the markings themselves, which are on the map like
+                    // anything else and would otherwise be marked again.
+                    if (feature.get('_mark') !== undefined) {
+                        return;
+                    }
+
+                    const grouped = members(feature);
+                    hit.push(...(grouped.length > 0 ? grouped : [feature]).filter(f => f.getGeometry?.()));
+                },
+                { hitTolerance: tolerance }
+            );
+
+            return hit.slice(0, MARK_LIMIT);
+        };
+
+        const groupAt = (map, pixel) => {
+            let grouped = null;
+
+            map.forEachFeatureAtPixel(
+                pixel,
+                feature => {
+                    if (typeof feature.get === 'function') {
+                        grouped ??= members(feature).length > 1 ? members(feature) : null;
+                    }
+                },
+                { hitTolerance: HIT_TOLERANCE }
+            );
+
+            return grouped;
+        };
+
+        // The popup is built from a template that knows the data set but not
+        // which feature of it this is, so the colours are put on afterwards.
+        // Which section is which is read from the id it prints rather than
+        // from its position, the order being the widget's own business.
+        // The popup is built a moment after the click, so the colours are put
+        // on when it turns up rather than when it was asked for.
+        const matchPopup = (marked, attempt = 0) => {
+            if (marked.length === 0 || attempt > MATCH_TRIES) {
+                return;
+            }
+
+            const popup = [...document.querySelectorAll('.widget-map-popup, .widget-info')]
+                .find(el => window.getComputedStyle(el).display !== 'none' && el.querySelector('.test-map-swatch'));
+
+            if (popup === undefined) {
+                setTimeout(() => matchPopup(marked, attempt + 1), MATCH_WAIT);
+
+                return;
+            }
+
+            for (const swatch of popup.querySelectorAll('.test-map-swatch')) {
+                let node = swatch.parentElement;
+
+                while (node !== null && node !== popup) {
+                    const naming = marked.filter(mark => mark.id && node.textContent.includes(mark.id));
+
+                    if (naming.length === 1) {
+                        swatch.style.background = naming[0].colour;
+                        break;
+                    }
+
+                    // More than one means this is a container of several
+                    // sections, and the section itself has been passed.
+                    if (naming.length > 1) {
+                        break;
+                    }
+
+                    node = node.parentElement;
+                }
+            }
+        };
+
+        // The popup is an overlay of the map's, anchored to a coordinate and
+        // kept there as the map moves, so moving it is a matter of saying
+        // which coordinate rather than of placing it on the screen.
+        const liftPopup = (map, features) => {
+            const top = features.length > 0 ? northernmost(features) : null;
+            if (top === null) {
+                return;
+            }
+
+            const popup = map.getOverlays().getArray()
+                .find(overlay => overlay.getElement()?.classList?.contains('widget-map-popup'));
+
+            popup?.setPosition(top);
+        };
+
+        // Same wait as the colours: the popup is built a moment after the
+        // click, and there is nothing to move until it is.
+        const settlePopup = (map, features, attempt = 0) => {
+            if (features.length === 0 || attempt > MATCH_TRIES) {
+                return;
+            }
+
+            const shown = [...document.querySelectorAll('.widget-map-popup')]
+                .some(el => window.getComputedStyle(el).display !== 'none');
+
+            if (shown) {
+                liftPopup(map, features);
+
+                return;
+            }
+
+            setTimeout(() => settlePopup(map, features, attempt + 1), MATCH_WAIT);
+        };
+
+        const widget = new Widget(document.querySelector('.test-map'));
+
+        widget.on('click', (event, control, features, coordinate) => {
+            const map = control?.map;
+            if (!map || !coordinate) {
+                return;
+            }
+
+            highlight.clear();
+
+            // A group is a move, not a selection: what it stands for is only
+            // worth marking once the map has arrived at it.
+            if (zoomToGroup(map, coordinate)) {
+                return;
+            }
+
+            // After the widget has finished with the click, not during it: it
+            // is still working through its own layers, and a marking layer
+            // appearing among them loses the popup.
+            const pixel = map.getPixelFromCoordinate(coordinate);
+
+            // The map's own reach, so that what is marked and what the popup
+            // lists are the same features rather than nearly the same.
+            const tolerance = typeof control.getHitTolerance === 'function'
+                ? control.getHitTolerance()
+                : HIT_TOLERANCE;
+
+            setTimeout(() => {
+                const found = featuresAt(map, pixel, tolerance);
+
+                matchPopup(highlight.show(map, found));
+                settlePopup(map, found);
+            }, 0);
+        });
+
+        // The map itself, which the widget holds but does not hand out. Only
+        // the pointer needs it before the first click; everything else is
+        // reached through the events.
+        widget.on('ready', () => {
+            const map = (widget._widget?.controls ?? []).find(control => control?.map?.getLayers)?.map;
+            if (!map) {
+                return;
+            }
+
+            highlight.prepare(map);
+            widget.on('vectorready', () => highlight.prepare(map));
+
+            map.on('pointermove', event => {
+                if (!event.dragging) {
+                    map.getTargetElement().style.cursor = groupAt(map, event.pixel) === null ? '' : 'pointer';
+                }
+            });
+        });
+
+        window.enterMap = widget;
+    </script>
 {% endblock %}
