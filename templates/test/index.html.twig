@@ -135,8 +135,15 @@
             };
 
             return {
+                // Added before any click: putting a layer on the map while
+                // the widget is working through one leaves it iterating a
+                // collection that changed under it, and the popup never
+                // arrives.
+                prepare(map) { return layer !== null || build(map); },
                 clear() { layer?.getSource().clear(); },
                 show(map, features) {
+                    // The layer is built from what a data set is drawn with,
+                    // so it cannot be built before there is something drawn.
                     if (layer === null && !build(map)) return;
                     const source = layer.getSource();
                     source.clear();
@@ -187,9 +194,15 @@
 
             // A group is a move, not a selection: what it stands for is only
             // worth marking once the map has arrived at it.
-            if (!zoomToGroup(map, coordinate)) {
-                highlight.show(map, featuresAt(map, map.getPixelFromCoordinate(coordinate)));
+            if (zoomToGroup(map, coordinate)) {
+                return;
             }
+
+            // After the widget has finished with the click, not during it: it
+            // is still working through its own layers, and a marking layer
+            // appearing among them loses the popup.
+            const pixel = map.getPixelFromCoordinate(coordinate);
+            setTimeout(() => highlight.show(map, featuresAt(map, pixel)), 0);
         });
 
         // The map itself, which the widget holds but does not hand out. Only
@@ -197,8 +210,14 @@
         // reached through the events.
         widget.on('ready', () => {
             const map = (widget._widget?.controls ?? []).find(control => control?.map?.getLayers)?.map;
+            if (!map) {
+                return;
+            }
 
-            map?.on('pointermove', event => {
+            highlight.prepare(map);
+            widget.on('vectorready', () => highlight.prepare(map));
+
+            map.on('pointermove', event => {
                 if (!event.dragging) {
                     map.getTargetElement().style.cursor = groupAt(map, event.pixel) === null ? '' : 'pointer';
                 }
