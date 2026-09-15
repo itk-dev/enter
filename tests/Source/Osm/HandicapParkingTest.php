@@ -178,13 +178,32 @@ class HandicapParkingTest extends TestCase
         $this->assertSame($this->source->definition->accessUrl, $this->entities[0]['source']['value']);
     }
 
+    public function testItCarriesTagsTheModelCannotHoldAsAdditionalInformation(): void
+    {
+        $this->assertSame(
+            ['type' => 'Property', 'value' => ['surface' => 'paving_stones', 'wheelchair' => 'yes']],
+            $this->entities[6]['additionalInformation']
+        );
+    }
+
+    public function testItCarriesOnlyTheTagsARecordActuallyHas(): void
+    {
+        $this->assertSame(['surface' => 'asphalt'], $this->entities[4]['additionalInformation']['value']);
+    }
+
+    public function testItOmitsAdditionalInformationWhenARecordCarriesNoSuchTag(): void
+    {
+        $this->assertArrayNotHasKey('additionalInformation', $this->entities[0]);
+    }
+
     /**
      * The first five elements are records from the live feed — a facility
      * node, a named facility, a closed bay way, a bay way and a relation —
      * kept verbatim except the second way, whose geometry is cut to two
      * vertices to exercise the open-way path. The rest are constructed for
      * the untagged capacity default, capacity:disabled=yes, an unrecognised
-     * fee value and the two guards that discard a record.
+     * fee value, the tags carried as additional information, and the two
+     * guards that discard a record.
      *
      * @return list<array<string, mixed>>
      */
@@ -292,6 +311,8 @@ class HandicapParkingTest extends TestCase
                     'parking_space' => 'disabled',
                     'description' => 'Ved hovedindgangen',
                     'fee' => 'donation',
+                    'surface' => 'paving_stones',
+                    'wheelchair' => 'yes',
                 ],
             ],
             [

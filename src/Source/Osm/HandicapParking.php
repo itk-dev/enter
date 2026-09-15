@@ -40,8 +40,6 @@ use App\Source\Definition;
         'disabled' => 'Access restriction on street-side parking; redundant with the category every entity is published with.',
         'access' => 'Who may enter; mapping it onto permit attributes needs an interpretation the tag values do not support.',
         'fee:conditional' => 'Time-qualified refinement of fee; the category values the plain fee tag maps onto carry no schedule.',
-        'surface' => 'Paving material; the model has no counterpart. 6% of records carry it.',
-        'wheelchair' => 'Step-free access to the place, not the parking capacity. 3% of records carry it.',
         'capacity:charging' => 'Bays with charging points; a different subset than the reserved bays this data set publishes. 2% of records carry it.',
         'operator' => 'Who runs the facility; a fact about the business rather than its reserved bays. 1% of records carry it.',
         'brand' => 'Commercial brand of the facility; the name already identifies it. Under 1% of records carry it.',
@@ -88,7 +86,13 @@ final class HandicapParking extends AbstractSource
             ->setProperty('category', $this->category($tags))
             ->setProperty('totalSpotNumber', $this->reservedBays($tags))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $this->transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $this->transformer->transformGeometry($this->definition->crs, $geometry))
+
+            // Add custom attributes
+            ->additionalInformation([
+                'surface' => trim((string) ($tags['surface'] ?? '')),
+                'wheelchair' => trim((string) ($tags['wheelchair'] ?? '')),
+            ]);
     }
 
     /**
