@@ -15,8 +15,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[AsCommand(
-    name: 'test:sources:fetch-content',
-    description: 'Fetch test source content',
+    name: 'test:source:fetch-content',
+    description: 'Fetch content for all test sources',
 )]
 #[When('dev')]
 class SourceFetchContentCommand
