@@ -49,6 +49,19 @@
         // How far off a marker still counts as being on it.
         const HIT_TOLERANCE = 6;
 
+        // The marking drawn around whatever a click landed on. Near-black
+        // belongs to no data set, so it reads as "this one" wherever it lands.
+        const MARK = '#000000';
+        const MARK_WIDTH = 4;
+        const MARK_RADIUS = 9;
+
+        // Above every data set, so an area cannot cover the marking on a point
+        // that happens to sit inside it.
+        const MARK_Z = 3000;
+
+        // As many as the popup itself will show, so the two agree.
+        const MARK_LIMIT = 10;
+
         const members = feature => feature.get('features') ?? [];
 
         const extentOf = features => features.reduce((extent, feature) => {
@@ -81,6 +94,75 @@
             return true;
         };
 
+        // The widget marks what was clicked by drawing it again, selected, in
+        // a layer of its own — but only for features it built itself, which
+        // these are not. So the marking is drawn here, on top of everything,
+        // which is also the only way a point under an area can be seen to be
+        // marked at all.
+        const highlight = (() => {
+            let layer = null;
+            let style = null;
+
+            // The drawing classes are the widget's own, reached through what
+            // it has already built rather than loaded a second time.
+            const build = map => {
+                const sample = map.getLayers().getArray()
+                    .flatMap(l => (l.getLayers ? l.getLayers().getArray() : [l]))
+                    .find(l => l.getSource?.()?.getFeatures && l.getSource().getFeatures().length > 0);
+                if (!sample) return false;
+
+                const drawn = sample.getStyle()(sample.getSource().getFeatures()[0], map.getView().getResolution());
+                const one = Array.isArray(drawn) ? drawn[0] : drawn;
+                if (!one) return false;
+
+                const Style = one.constructor;
+                const Stroke = one.getStroke?.()?.constructor ?? one.getImage?.()?.getStroke?.()?.constructor;
+                const Circle = one.getImage?.()?.constructor;
+                if (!Stroke || !Circle) return false;
+
+                style = new Style({
+                    stroke: new Stroke({ color: MARK, width: MARK_WIDTH }),
+                    image: new Circle({ radius: MARK_RADIUS, stroke: new Stroke({ color: MARK, width: MARK_WIDTH }) }),
+                });
+                layer = new sample.constructor({
+                    source: new (sample.getSource().constructor)(),
+                    style: () => style,
+                    zIndex: MARK_Z,
+                });
+                map.addLayer(layer);
+
+                return true;
+            };
+
+            return {
+                clear() { layer?.getSource().clear(); },
+                show(map, features) {
+                    if (layer === null && !build(map)) return;
+                    const source = layer.getSource();
+                    source.clear();
+                    for (const feature of features) {
+                        source.addFeature(new feature.constructor({ geometry: feature.getGeometry().clone() }));
+                    }
+                },
+            };
+        })();
+
+        // What a click landed on, in the order the popup lists it.
+        const featuresAt = (map, pixel) => {
+            const hit = [];
+
+            map.forEachFeatureAtPixel(
+                pixel,
+                feature => {
+                    const grouped = members(feature);
+                    hit.push(...(grouped.length > 0 ? grouped : [feature]));
+                },
+                { hitTolerance: HIT_TOLERANCE }
+            );
+
+            return hit.slice(0, MARK_LIMIT);
+        };
+
         const groupAt = (map, pixel) => {
             let grouped = null;
 
@@ -96,8 +178,17 @@
         const widget = new Widget(document.querySelector('.test-map'));
 
         widget.on('click', (event, control, features, coordinate) => {
-            if (control?.map && coordinate) {
-                zoomToGroup(control.map, coordinate);
+            const map = control?.map;
+            if (!map || !coordinate) {
+                return;
+            }
+
+            highlight.clear();
+
+            // A group is a move, not a selection: what it stands for is only
+            // worth marking once the map has arrived at it.
+            if (!zoomToGroup(map, coordinate)) {
+                highlight.show(map, featuresAt(map, map.getPixelFromCoordinate(coordinate)));
             }
         });
 
