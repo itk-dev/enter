@@ -6,7 +6,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Yaml\Yaml;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class DataController extends AbstractController
@@ -53,13 +52,5 @@ final class DataController extends AbstractController
             headers: $response->getHeaders(),
             json: true,
         );
-    }
-
-    #[Route('/test', name: 'data_test')]
-    public function test(): JsonResponse
-    {
-        $data = Yaml::parseFile(__DIR__.'/data.yaml');
-
-        return new JsonResponse($data);
     }
 }
