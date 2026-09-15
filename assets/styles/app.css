@@ -61,6 +61,11 @@
     min-height: 320px;
 }
 
+.test-map .widget-cursor,
+.test-map.widget-cursor {
+    cursor: pointer;
+}
+
 .test-map-details {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);

@@ -50,12 +50,6 @@ final readonly class MapConfig
     private const string MIXED_CLUSTER = '#4a4a6a';
 
     /**
-     * How much wider than what it zooms to the view ends up. The widget's own
-     * 1.2 leaves a shape almost touching the edges of the map.
-     */
-    private const float ZOOM_BUFFER = 1.8;
-
-    /**
      * How much larger a point is drawn once selected. Enough to grow past
      * whatever it is sitting on rather than merely change colour under it.
      */
@@ -142,10 +136,11 @@ final readonly class MapConfig
                 'type' => 'cloud',
                 'multifeature' => self::FEATURES_PER_CLICK,
                 'className' => 'widget-simple-popup',
-                // Zooming to what was clicked stops just short of its edges,
-                // so the thing keeps some map around it rather than filling
-                // the frame corner to corner.
-                'zoomOptions' => ['activateZoom' => true, 'buffer' => self::ZOOM_BUFFER],
+                // No zooming on the widget's part. It moves to a feature by
+                // its own reckoning of how close is close enough, which from
+                // any nearer than that means clicking a point zooms out of
+                // the view the reader had. Groups are zoomed to from the
+                // page, where the points being zoomed to are known.
             ],
             'layerswitch' => [
                 'detach' => self::TOGGLES_ELEMENT,
