@@ -26,20 +26,7 @@ use App\Source\Definition;
     // parking space (parking_space=disabled) or as reserving bays for
     // disabled parking (capacity:disabled, excluding "no" and "0").
     // accessUrl: 'https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%5Btimeout%3A180%5D%3Barea%283601784663%29-%3E.a%3B%28nwr%5B%22parking_space%22%3D%22disabled%22%5D%28area.a%29%3Bnwr%5B%22capacity%3Adisabled%22%5D%5B%22capacity%3Adisabled%22%21~%22%5E%28no%7C0%29%24%22%5D%28area.a%29%3B%29%3Bout%20geom%20tags%3B',
-    accessUrl: [
-        'url' => 'https://overpass-api.de/api/interpreter',
-        'query' => [
-            'data' => <<<'DATA'
-[out:json][timeout:180];
-area(3601784663)->.a;
-(
- nwr["parking_space"="disabled"](area.a);
- nwr["capacity:disabled"]["capacity:disabled"!~"^(no|0)$"](area.a);
-);
-out geom tags;
-DATA,
-        ],
-    ],
+    accessUrl: 'https://overpass-api.de/api/interpreter',
     dataType: DataType::Overpass,
     mediaType: 'application/json',
     crs: 'EPSG:4326',
@@ -47,7 +34,6 @@ DATA,
     contextUrl: 'https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld',
     updateFrequency: 'continuous',
     licence: 'https://opendatacommons.org/licenses/odbl/1-0/',
-
     omittedFields: [
         'amenity' => 'Selector distinguishing a single bay (parking_space) from a facility (parking); the model carries no such distinction.',
         'capacity' => 'Published for single bays only; on a facility it counts all bays and would overstate the reserved capacity.',
@@ -59,6 +45,18 @@ DATA,
         'capacity:charging' => 'Bays with charging points; a different subset than the reserved bays this data set publishes. 2% of records carry it.',
         'operator' => 'Who runs the facility; a fact about the business rather than its reserved bays. 1% of records carry it.',
         'brand' => 'Commercial brand of the facility; the name already identifies it. Under 1% of records carry it.',
+    ],
+
+    accessUrlQuery: [
+        'data' => <<<'DATA'
+            [out:json][timeout:180];
+            area(3601784663)->.a;
+            (
+             nwr["parking_space"="disabled"](area.a);
+             nwr["capacity:disabled"]["capacity:disabled"!~"^(no|0)$"](area.a);
+            );
+            out geom tags;
+            DATA,
     ],
 )]
 final class HandicapParking extends AbstractSource
