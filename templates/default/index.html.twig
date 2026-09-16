@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+    <style>
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+
+    <div style="max-width: 560px">
+<div class="video-container">
+    <iframe src="https://www.youtube-nocookie.com/embed/_mHcWWOa3aI?si=T6UN2Y8pe9e8Owdg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
+    </div>
+
+    {% if 'dev' == app.environment %}
+        <p>You're probably looking for the <a href="{{ path('test_default') }} ">test controller</a>, right?</p>
+    {% endif %}
+{% endblock %}
