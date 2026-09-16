@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Test\Map;
 
-use App\Broker\PagedBrokerReader;
+use App\Broker\BrokerReader;
 use App\Source\SourceInterface;
 
 /**
@@ -28,7 +28,7 @@ final readonly class SourceFeatures
     private const string SOURCE_ATTRIBUTE = 'https://smartdatamodels.org/source';
 
     public function __construct(
-        private PagedBrokerReader $reader,
+        private BrokerReader $reader,
     ) {
     }
 

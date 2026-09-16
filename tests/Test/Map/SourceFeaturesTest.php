@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Test\Map;
 
-use App\Broker\PagedBrokerReader;
+use App\Broker\BrokerReader;
 use App\Source\SourceInterface;
 use App\Test\Map\SourceFeatures;
 use App\Tests\Support\FakeSource;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
@@ -99,11 +98,14 @@ class SourceFeaturesTest extends TestCase
         $client = new MockHttpClient([
             new MockResponse(
                 json_encode(['type' => 'FeatureCollection', 'features' => $features]),
-                ['response_headers' => ['content-type' => ['application/geo+json']]]
+                ['response_headers' => [
+                    'content-type' => ['application/geo+json'],
+                    'ngsild-results-count' => [(string) \count($features)],
+                ]]
             ),
         ]);
 
-        $collection = new SourceFeatures(new PagedBrokerReader($client, new NullLogger()))
+        $collection = new SourceFeatures(new BrokerReader($client, 10000))
             ->forSource($this->source(self::MINE), self::TYPE);
 
         return $collection['features'];
