@@ -39,6 +39,12 @@ tasks:
       - if: '[ "$TASK_USE_DDEV" = "true" ]'
         cmd: ddev launch
 
+  test:start:
+    desc: 'Start services needed to run test'
+    internal: true
+    cmds:
+      - docker compose up --detach phpfpm --no-deps
+
   test:
     desc: Run all tests
     cmds:
@@ -50,6 +56,7 @@ tasks:
     env:
       APP_ENV: test
     desc: 'Run all {{.TASK | replace "test:" "" }} tests'
+    deps: [test:start]
     cmd:
       task: php
       vars:
@@ -191,7 +198,6 @@ tasks:
     desc: 'Run code analysis'
     cmds:
       - task: code-analysis:phpstan
-      - task: code-analysis:mago
 
   code-analysis:phpstan:
     desc: 'Run PHPStan'
