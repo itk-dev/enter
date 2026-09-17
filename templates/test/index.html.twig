@@ -1,36 +1,15 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-    {% set type = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking' %}
-
     <h2 class="test-map-heading">{{ type }}</h2>
+
+    {{ include('test/_tabs.html.twig') }}
 
     {# The layerswitch control is configured to detach into this element, so
        the data sets get their toggles here rather than over the map. #}
     <div class="test-map-toggles" data-widget-detach="layers"></div>
 
-    <div class="test-map" data-widget-url="{{ path('test_config', {type: type}) }}"></div>
-
-    {# Sized before the widget initialises, so it lays the map out at the
-       height it will keep rather than resizing under the user. #}
-    <script>
-        (function () {
-            var map = document.querySelector('.test-map');
-            var fit = function () {
-                var top = map.getBoundingClientRect().top + window.scrollY;
-                var height = window.innerHeight - top - 24;
-                map.style.height = Math.max(320, height) + 'px';
-            };
-
-            fit();
-            window.addEventListener('resize', fit);
-            // The heading wraps at narrow widths and the toggles only get
-            // their height once the widget has drawn them, so the first
-            // measurement is rarely the lasting one.
-            window.addEventListener('load', fit);
-            setTimeout(fit, 2000);
-        })();
-    </script>
+    <div class="test-map" data-widget-url="{{ path('test_config', {type: type, multiply: multiply}) }}"></div>
 
     {# Built here rather than by the widget's own loader, which creates the
        widget and keeps no reference to it. Holding one is what lets a click
@@ -38,6 +17,9 @@
        The version is pinned: https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
     <script type="module">
         import Widget from 'https://widget.cdn.septima.dk/3.19.0/widgetapi.mjs';
+        {# The same readout the other two tabs carry, so the three can be held
+           against each other rather than only remembered. #}
+        import { stats } from '{{ asset('test/map.js') }}';
 
         // How much map is left around a group once zoomed to it, in pixels.
         const PADDING = 90;
@@ -347,7 +329,37 @@
             setTimeout(() => settlePopup(map, features, attempt + 1), MATCH_WAIT);
         };
 
+        // How many features the data sets brought, leaving out the layer that
+        // groups them: it holds the same points over again, and counting them
+        // twice would say this map draws twice what the other two draw. What
+        // marks it out is its source having a source of its own, which is how
+        // a clustering source holds the features it grouped.
+        const countsTowardsTheData = source => typeof source?.getFeatures === 'function'
+            && typeof source.getSource !== 'function';
+
+        const drawnFeatures = map => map.getLayers().getArray()
+            .flatMap(layer => (layer.getLayers ? layer.getLayers().getArray() : [layer]))
+            .map(layer => layer.getSource?.())
+            .filter(countsTowardsTheData)
+            .reduce((total, source) => total + source.getFeatures().length, 0);
+
+        const readout = stats(document.querySelector('.test-map-stats'), 'Septima');
+        // The widget fetches the data itself, so what can be timed is the whole
+        // of it: asking for the configuration, fetching, and drawing.
+        const started = performance.now();
+
         const widget = new Widget(document.querySelector('.test-map'));
+
+        // Registered out here rather than inside the 'ready' handler below:
+        // the vector layers have already loaded by the time that runs, so a
+        // listener added in there never hears about the first of them.
+        widget.on('vectorready', () => {
+            const map = (widget._widget?.controls ?? []).find(control => control?.map?.getLayers)?.map;
+
+            if (map) {
+                readout.loaded(drawnFeatures(map), null, performance.now() - started);
+            }
+        });
 
         widget.on('click', (event, control, features, coordinate) => {
             const map = control?.map;
@@ -402,5 +414,25 @@
         });
 
         window.enterMap = widget;
+    </script>
+    {# Sized before the widget initialises, so it lays the map out at the
+       height it will keep rather than resizing under the user. #}
+    <script>
+        (function () {
+            var map = document.querySelector('.test-map');
+            var fit = function () {
+                var top = map.getBoundingClientRect().top + window.scrollY;
+                var height = window.innerHeight - top - 24;
+                map.style.height = Math.max(320, height) + 'px';
+            };
+
+            fit();
+            window.addEventListener('resize', fit);
+            // The heading wraps at narrow widths and the toggles only get
+            // their height once the widget has drawn them, so the first
+            // measurement is rarely the lasting one.
+            window.addEventListener('load', fit);
+            setTimeout(fit, 2000);
+        })();
     </script>
 {% endblock %}

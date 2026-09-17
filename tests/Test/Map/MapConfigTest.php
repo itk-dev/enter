@@ -7,6 +7,7 @@ namespace App\Tests\Test\Map;
 use App\Source\DataType;
 use App\Source\SourceInterface;
 use App\Test\Map\MapConfig;
+use App\Test\Map\MapLayers;
 use App\Tests\Support\FakeSource;
 use PHPUnit\Framework\TestCase;
 
@@ -50,7 +51,7 @@ class MapConfigTest extends TestCase
 
         $ids = array_values(array_filter(
             array_column(array_slice($config['map']['layer'], 1), 'id'),
-            static fn (string $id): bool => MapConfig::COMBINED_ID !== $id
+            static fn (string $id): bool => MapLayers::COMBINED_ID !== $id
         ));
 
         $this->assertSame(['polygons', 'points'], $ids);
@@ -119,7 +120,7 @@ class MapConfigTest extends TestCase
     public function testItDrawsCoincidingPointsAsASingleMarker(): void
     {
         $config = $this->build(['a' => $this->source('A', 'https://a.example/feed')]);
-        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapConfig::COMBINED_ID];
+        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapLayers::COMBINED_ID];
 
         $this->assertArrayNotHasKey('grid', $combined['cluster']);
         $this->assertArrayHasKey('features_style', $combined['cluster']);
@@ -192,11 +193,11 @@ class MapConfigTest extends TestCase
             'b' => $this->source('B', 'https://b.example/feed'),
         ]);
 
-        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapConfig::COMBINED_ID];
+        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapLayers::COMBINED_ID];
 
         $this->assertArrayHasKey('cluster', $combined);
-        $this->assertSame('/features/'.MapConfig::COMBINED_ID, $combined['features_host']);
-        $this->assertSame([MapConfig::COMBINED_ID], $this->control($config, 'layerswitch')['excludeLayers']);
+        $this->assertSame('/features/'.MapLayers::COMBINED_ID, $combined['features_host']);
+        $this->assertSame([MapLayers::COMBINED_ID], $this->control($config, 'layerswitch')['excludeLayers']);
     }
 
     /**
@@ -210,7 +211,7 @@ class MapConfigTest extends TestCase
             'b' => $this->source('B', 'https://b.example/feed'),
         ]);
 
-        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapConfig::COMBINED_ID];
+        $combined = array_column(array_slice($config['map']['layer'], 1), null, 'id')[MapLayers::COMBINED_ID];
 
         $this->assertStringContainsString('dataset === "a"', $combined['features_style']['fillcolor']);
         $this->assertStringContainsString('dataset === "b"', $combined['features_style']['fillcolor']);

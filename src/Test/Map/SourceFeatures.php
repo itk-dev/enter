@@ -9,13 +9,6 @@ use App\Source\SourceInterface;
 
 /**
  * The entities of one source, shaped for a map widget.
- *
- * The broker answers with every entity of a model at once, under expanded
- * attribute names and with each value wrapped in an NGSI-LD Property. A
- * widget draws a layer from a plain FeatureCollection and reads plain field
- * names, so the two have to be reconciled somewhere; the broker will not do
- * it for attributes that were expanded against a default vocabulary, which
- * leaves the split by source and the flattening to us.
  */
 final readonly class SourceFeatures
 {

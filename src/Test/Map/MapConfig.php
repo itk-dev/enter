@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Test\Map;
 
-use App\Source\DataType;
 use App\Source\SourceInterface;
 use App\Test\Source\TestDefinition;
 
@@ -14,84 +13,21 @@ use App\Test\Source\TestDefinition;
  * The base — where the map opens, which background it draws — is read from a
  * file. The feature layers are not: there is one per test source, and which
  * sources exist is only known once the container has them.
+ *
+ * What those layers are is {@see MapLayers}, which the Leaflet and MapLibre
+ * maps read as well; this class only says how to put it to the widget.
  */
 final readonly class MapConfig
 {
-    /**
-     * One colour per data set, in the order the sources come. Two sources
-     * describing the same bays are only told apart by colour, so these need
-     * to stay clearly distinct rather than merely different.
-     */
-    private const array COLOURS = ['#e6194b', '#3e7bfa', '#2ca02c', '#ff7f0e', '#9467bd'];
-
-    /**
-     * How many features one click may reveal. Without it the widget shows a
-     * single feature, which hides every point that happens to sit under a
-     * polygon — and the two data sets overlap by design.
-     */
-    private const int FEATURES_PER_CLICK = 10;
-
-    /**
-     * Small enough that neighbouring bays stay apart at street zoom, while
-     * still giving a click something to land on.
-     */
-    private const int POINT_RADIUS = 4;
-
-    /**
-     * The outline of whatever is currently being looked at. Deliberately not
-     * one of the data set colours: it has to read as "this one" whichever
-     * layer the feature belongs to.
-     */
-    private const string SELECTED_OUTLINE = '#000000';
-
-    /**
-     * The colour of a group that may hold more than one data set.
-     */
-    private const string MIXED_CLUSTER = '#4a4a6a';
-
-    /**
-     * How much larger a point is drawn once selected. Enough to grow past
-     * whatever it is sitting on rather than merely change colour under it.
-     */
-    private const int SELECTED_GROWTH = 6;
-
     /**
      * The name of the element on the page that the layer toggles render into.
      */
     public const string TOGGLES_ELEMENT = 'layers';
 
-    /**
-     * Stands for every data set at once, when they are asked for together.
-     */
-    public const string COMBINED_ID = 'all';
-
-    /**
-     * How far apart, in pixels, points have to be before they are drawn as
-     * separate markers. The widget's own default of 40 leaves clusters
-     * jostling and points sitting on their edges; this buys them room.
-     */
-    private const int CLUSTER_DISTANCE = 80;
-
-    /**
-     * The size of a cluster marker, whatever it stands for.
-     */
-    private const int CLUSTER_RADIUS = 13;
-
-    /**
-     * The resolution, in metres per pixel, at which points stop being grouped.
-     * Zoomed in this far the bays are metres apart on screen and stand on
-     * their own; a marker saying "2" tells the reader less than the two
-     * points it is hiding.
-     */
-    private const float CLUSTER_UNTIL_RESOLUTION = 2.0;
-
-    /**
-     * Where each kind of layer sits in the stack. A point covered by an area
-     * cannot be seen, let alone seen to be selected, so points are given the
-     * higher place outright rather than left to the order layers arrive in.
-     */
-    private const int Z_AREAS = 10;
-    private const int Z_POINTS = 20;
+    public function __construct(
+        private MapLayers $layers = new MapLayers(),
+    ) {
+    }
 
     /**
      * @param array<string, mixed>           $base    the configuration read from file
@@ -103,25 +39,30 @@ final readonly class MapConfig
     public function build(array $base, array $sources, callable $dataUrl): array
     {
         $layers = $base['map']['layer'] ?? [];
-        $colour = 0;
 
-        $shades = $this->shades($sources);
+        $drawn = $this->layers->build($sources, $dataUrl);
+
+        $shades = [];
+        foreach ($drawn as $layer) {
+            $shades[$layer->id] = $layer->colour;
+        }
+
         $titles = [];
         foreach ($sources as $id => $source) {
             $titles[$id] = $source->definition->title;
         }
 
-        foreach ($this->ordered($sources) as $id => $source) {
+        foreach ($drawn as $layer) {
             $layers[] = [
-                ...$this->layer($id, $source, $dataUrl($id), $shades[$id]),
+                ...$this->layer($layer, $sources[$layer->id]),
                 // The grouped view of the same points is drawn instead while
                 // the map is far enough out for them to pile up.
                 'minResolution' => 0,
-                'maxResolution' => self::CLUSTER_UNTIL_RESOLUTION,
+                'maxResolution' => MapLayers::CLUSTER_UNTIL_RESOLUTION,
             ];
         }
 
-        $layers[] = $this->clusterLayer($dataUrl(self::COMBINED_ID), $shades, $titles);
+        $layers[] = $this->clusterLayer($dataUrl(MapLayers::COMBINED_ID), $shades, $titles);
 
         $base['map']['layer'] = $layers;
 
@@ -139,7 +80,7 @@ final readonly class MapConfig
             'info' => [
                 'eventtype' => 'click',
                 'type' => 'cloud',
-                'multifeature' => self::FEATURES_PER_CLICK,
+                'multifeature' => MapLayers::FEATURES_PER_CLICK,
                 'className' => 'widget-simple-popup',
                 // No zooming on the widget's part. It moves to a feature by
                 // its own reckoning of how close is close enough, which from
@@ -164,7 +105,7 @@ final readonly class MapConfig
                 'showLayersWithoutLegend' => true,
                 // The grouped view is how the data sets are drawn far out,
                 // not a data set of its own to be switched.
-                'excludeLayers' => [self::COMBINED_ID],
+                'excludeLayers' => [MapLayers::COMBINED_ID],
                 // Without this the entries are rendered as plain text and
                 // explicitly disabled — listed, but not something you can
                 // switch. With it they take a click, and tabindex gives them
@@ -175,59 +116,6 @@ final readonly class MapConfig
         ]];
 
         return $base;
-    }
-
-    /**
-     * The sources that bring areas first, so the rest draw on top of them.
-     *
-     * A layer covers the ones before it. An Overpass feed asked for geometry
-     * answers with the outline of every way it matched, and an outline laid
-     * over a point from another data set takes the clicks that point should
-     * have had. Ordering by the declared type is a rule of thumb — nothing
-     * stops a feed from returning only nodes — but it is the only thing
-     * known about the shape of the data before any of it is fetched.
-     *
-     * @param array<string, SourceInterface> $sources
-     *
-     * @return array<string, SourceInterface>
-     */
-    private function ordered(array $sources): array
-    {
-        uasort($sources, static fn (SourceInterface $a, SourceInterface $b): int => self::drawsAreas($b) <=> self::drawsAreas($a));
-
-        return $sources;
-    }
-
-    /**
-     * A darker shade of a colour, for an edge against its own fill.
-     */
-    private static function darken(string $colour, float $by = 0.45): string
-    {
-        [$r, $g, $b] = sscanf($colour, '#%02x%02x%02x');
-
-        return sprintf('#%02x%02x%02x', (int) ($r * (1 - $by)), (int) ($g * (1 - $by)), (int) ($b * (1 - $by)));
-    }
-
-    private static function drawsAreas(SourceInterface $source): int
-    {
-        return (int) (DataType::Overpass === $source->definition->dataType);
-    }
-
-    /**
-     * The colour each data set is drawn in, by id.
-     *
-     * @param array<string, SourceInterface> $sources
-     *
-     * @return array<string, string>
-     */
-    private function shades(array $sources): array
-    {
-        $shades = [];
-        foreach (array_keys($this->ordered($sources)) as $position => $id) {
-            $shades[$id] = self::COLOURS[$position % count(self::COLOURS)];
-        }
-
-        return $shades;
     }
 
     /**
@@ -247,46 +135,46 @@ final readonly class MapConfig
     private function clusterLayer(string $url, array $shades, array $titles): array
     {
         return [
-            'id' => self::COMBINED_ID,
+            'id' => MapLayers::COMBINED_ID,
             'name' => 'Alle datasæt',
             'type' => 'geojson',
             'features' => true,
             'features_host' => $url,
             'visible' => true,
             'srs' => 'EPSG:4326',
-            'zIndex' => self::Z_POINTS,
-            'minResolution' => self::CLUSTER_UNTIL_RESOLUTION,
+            'zIndex' => MapLayers::Z_POINTS,
+            'minResolution' => MapLayers::CLUSTER_UNTIL_RESOLUTION,
             // A feature the popup has no template for is left out of it, and
             // a lone point far out is drawn from here rather than from its own
             // data set's layer: without this, clicking one says nothing.
             'template_info' => $this->body(self::shadeTemplate($shades), self::valueTemplate($titles, 'dataset')),
             'cluster' => [
-                'distance' => self::CLUSTER_DISTANCE,
+                'distance' => MapLayers::CLUSTER_DISTANCE,
                 'features_style' => [
                     'symbol' => 'circle',
-                    'radius' => self::CLUSTER_RADIUS,
-                    'radius_selected' => self::CLUSTER_RADIUS + 2,
+                    'radius' => MapLayers::CLUSTER_RADIUS,
+                    'radius_selected' => MapLayers::CLUSTER_RADIUS + 2,
                     // A group can hold more than one data set, so it is drawn
                     // in neither of their colours rather than in a colour that
                     // would claim it belongs to one of them.
-                    'fillcolor' => self::MIXED_CLUSTER,
+                    'fillcolor' => MapLayers::MIXED_CLUSTER,
                     'fillopacity' => 0.95,
-                    'strokecolor' => self::darken(self::MIXED_CLUSTER),
-                    'strokewidth' => 1.5,
+                    'strokecolor' => MapLayers::darken(MapLayers::MIXED_CLUSTER),
+                    'strokewidth' => MapLayers::STROKE_WIDTH,
                 ],
             ],
             'features_style' => [
                 'symbol' => 'circle',
-                'radius' => self::POINT_RADIUS,
-                'radius_selected' => self::POINT_RADIUS + self::SELECTED_GROWTH,
+                'radius' => MapLayers::POINT_RADIUS,
+                'radius_selected' => MapLayers::POINT_RADIUS + MapLayers::SELECTED_GROWTH,
                 'fillcolor' => self::shadeTemplate($shades),
                 'fillcolor_selected' => self::shadeTemplate($shades),
                 'fillopacity' => 0.9,
                 'fillopacity_selected' => 1,
-                'strokecolor' => self::SELECTED_OUTLINE,
-                'strokecolor_selected' => self::SELECTED_OUTLINE,
+                'strokecolor' => MapLayers::SELECTED_OUTLINE,
+                'strokecolor_selected' => MapLayers::SELECTED_OUTLINE,
                 'strokewidth' => 1,
-                'strokewidth_selected' => 5,
+                'strokewidth_selected' => MapLayers::SELECTED_WIDTH,
             ],
         ];
     }
@@ -319,43 +207,33 @@ final readonly class MapConfig
     /**
      * @return array<string, mixed>
      */
-    private function layer(string $id, SourceInterface $source, string $url, string $colour): array
+    private function layer(MapLayer $layer, SourceInterface $source): array
     {
         return [
-            'id' => $id,
-            'name' => $source->definition->title,
-            'title' => $source->definition->title,
+            'id' => $layer->id,
+            'name' => $layer->title,
+            'title' => $layer->title,
             'type' => 'geojson',
             'features' => true,
-            'features_host' => $url,
+            'features_host' => $layer->url,
             'visible' => true,
             'srs' => 'EPSG:4326',
-            'zIndex' => 1 === self::drawsAreas($source) ? self::Z_AREAS : self::Z_POINTS,
-            'template_info' => $this->template($source, $colour),
+            'zIndex' => $layer->zIndex(),
+            'template_info' => $this->template($source, $layer->colour),
             'features_style' => [
                 'symbol' => 'circle',
                 'symbol_selected' => 'circle',
-                'radius' => self::POINT_RADIUS,
-                'radius_selected' => self::POINT_RADIUS + self::SELECTED_GROWTH,
-                'fillcolor' => $colour,
-                'fillcolor_selected' => $colour,
-                // A solid area would hide whatever another data set put
-                // underneath it, which is exactly what we are trying to see.
-                // A point hides nothing, and washing it out only makes it
-                // harder to pick out against the map.
-                'fillopacity' => 1 === self::drawsAreas($source) ? 0.35 : 0.9,
-                'fillopacity_selected' => 1 === self::drawsAreas($source) ? 0.75 : 1,
-                // Two areas that touch, or lie one on the other, are a single
-                // shape without an edge to tell them apart. The outline is
-                // darker than the fill so it reads as a border rather than
-                // more of the same colour.
-                'strokecolor' => self::darken($colour),
-                'strokecolor_selected' => self::SELECTED_OUTLINE,
+                'radius' => MapLayers::POINT_RADIUS,
+                'radius_selected' => MapLayers::POINT_RADIUS + MapLayers::SELECTED_GROWTH,
+                'fillcolor' => $layer->colour,
+                'fillcolor_selected' => $layer->colour,
+                'fillopacity' => $layer->fillOpacity(),
+                'fillopacity_selected' => $layer->fillOpacity(selected: true),
+                'strokecolor' => $layer->outline(),
+                'strokecolor_selected' => MapLayers::SELECTED_OUTLINE,
                 'strokeopacity' => 1,
-                'strokewidth' => 1.5,
-                // What is being looked at has to stand out from its
-                // neighbours, which are the same colour by definition.
-                'strokewidth_selected' => 5,
+                'strokewidth' => MapLayers::STROKE_WIDTH,
+                'strokewidth_selected' => MapLayers::SELECTED_WIDTH,
                 'strokeopacity_selected' => 1,
             ],
         ];
