@@ -1,4 +1,4 @@
-# 002: Publication mechanism
+# 001: Publication mechanism
 
 | Field              | Value                                                  |
 |--------------------|--------------------------------------------------------|
