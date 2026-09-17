@@ -6,10 +6,6 @@ namespace App\Broker\Exception;
 
 /**
  * The broker holds more entities than one request may return.
- *
- * Its maximum result size has fallen behind the data, so the answer was a
- * page rather than the whole set. Passing that on would leave whatever drew
- * it quietly wrong, which is worth failing over rather than logging.
  */
 final class IncompleteResultException extends \RuntimeException
 {
