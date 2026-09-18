@@ -8,11 +8,6 @@
 | **Stakeholders**   | ITK Dev developers, data consumers, future maintainers |
 | **Status**         | Draft                                                  |
 
-## Resumé
-
-This ADR decides the mechanism by which data is published to consumers. We will
-publish to an NGSI-LD context broker.
-
 ## Context
 
 This project deals with a potentially large set of diverse data that is meant to be
