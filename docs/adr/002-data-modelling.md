@@ -10,7 +10,7 @@
 
 ## Context
 
-The selected context broker carries attributes and references a vocabulary, 
+The selected context broker carries attributes and references a vocabulary,
 but it does not define the data model. We have a great focus on interoperability,
 so selecting a standardized model for data, seems to be the way to go.
 
@@ -21,9 +21,9 @@ is the de-facto vocabulary of the NGSI-LD ecosystem, we choose to go with that.
 Which model a given data set uses is a decision for that data set, and will
 each include its own ADR.
 
-Coverage is uneven, so some data sets will have no existing model to fit. 
+Coverage is uneven, so some data sets will have no existing model to fit.
 When this happens, we will draft a new model contribution, add a temporary
-vocabulary document and submit it to the program. 
+vocabulary document and submit it to the program.
 
 Where a type has to come from somewhere other than Smart Data Models, only the
 type comes across. Geometry, addresses, units and timestamps follow the same
