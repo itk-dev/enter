@@ -5,12 +5,8 @@ declare(strict_types=1);
 namespace App\Test\Map;
 
 /**
- * One data set, described the same way for every map library.
- *
- * Three maps drawing the same data have to agree on what they are drawing, or
- * comparing them says more about the configuration than about the libraries.
- * What a data set is called, which colour it carries and whether it brings
- * areas is settled here, once, and read by each of them.
+ * One data set, as the map draws it: what it is called, which colour it
+ * carries and whether it brings areas.
  */
 final readonly class MapLayer
 {
@@ -37,26 +33,12 @@ final readonly class MapLayer
     }
 
     /**
-     * A point covered by an area cannot be seen, let alone seen to be
-     * selected, so points are given the higher place outright rather than
-     * left to the order the layers arrive in.
-     */
-    public function zIndex(): int
-    {
-        return $this->areas ? MapLayers::Z_AREAS : MapLayers::Z_POINTS;
-    }
-
-    /**
      * A solid area would hide whatever another data set put underneath it,
      * which is exactly what we are trying to see. A point hides nothing, and
      * washing it out only makes it harder to pick out against the map.
      */
-    public function fillOpacity(bool $selected = false): float
+    public function fillOpacity(): float
     {
-        if ($this->areas) {
-            return $selected ? 0.75 : 0.35;
-        }
-
-        return $selected ? 1.0 : 0.9;
+        return $this->areas ? 0.35 : 0.9;
     }
 }

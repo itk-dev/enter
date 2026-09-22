@@ -8,7 +8,7 @@ use App\Broker\BrokerReader;
 use App\Source\SourceInterface;
 
 /**
- * The entities of one source, shaped for a map widget.
+ * The entities of one source, shaped for the map.
  */
 final readonly class SourceFeatures
 {

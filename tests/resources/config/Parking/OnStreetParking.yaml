@@ -1,22 +1,6 @@
-debug: true
-map:
-    # "srs": "EPSG:4326",
-
-    view:
-        zoomLevel: 6
-        # Dokk1
-        x: 575436.27797098
-        y: 6223832.5677597
-        # x: 10.214391917362704,
-        # y: 56.153720859591054
-
-    # Only the background belongs here. One feature layer per test source is
-    # added when the configuration is served, since which sources exist is
-    # not known until the container has them.
-    layer:
-        - namedlayer: "#septima_standard"
-          # Tiles for the zoom levels either side, and room to keep the ones
-          # already fetched, so a zoom draws from the cache instead of
-          # stalling on the network for every step.
-          preload: 3
-          cacheSize: 1024
+# Where the map opens: Dokk1, from far enough out to take in the town.
+view:
+    longitude: 10.214391917373169
+    latitude: 56.15354159105779
+    # Metres to the pixel.
+    resolution: 25.6

@@ -8,12 +8,10 @@ use App\Source\DataType;
 use App\Source\SourceInterface;
 
 /**
- * What the test map draws, and how, independently of what draws it.
+ * What the test map draws, and how.
  *
- * The page offers the same data through three map libraries so they can be
- * told apart by how they perform rather than by how they were set up. That
- * only holds if they are given the same data sets, in the same order, in the
- * same colours and at the same sizes, which is what this class decides.
+ * Which data sets there are, in what order, in which colours and at what
+ * sizes is decided here, once, and read wherever the map is described.
  */
 final readonly class MapLayers
 {
@@ -43,23 +41,10 @@ final readonly class MapLayers
     public const int POINT_RADIUS = 4;
 
     /**
-     * How much larger a point is drawn once selected. Enough to grow past
-     * whatever it is sitting on rather than merely change colour under it.
+     * The outline of a point drawn in the grouped view, where its fill is the
+     * data set's colour and nothing else tells it from the map behind it.
      */
-    public const int SELECTED_GROWTH = 6;
-
-    /**
-     * The outline of whatever is currently being looked at. Deliberately not
-     * one of the data set colours: it has to read as "this one" whichever
-     * layer the feature belongs to.
-     */
-    public const string SELECTED_OUTLINE = '#000000';
-
-    /**
-     * What is being looked at has to stand out from its neighbours, which are
-     * the same colour by definition.
-     */
-    public const int SELECTED_WIDTH = 5;
+    public const string POINT_OUTLINE = '#000000';
 
     public const float STROKE_WIDTH = 1.5;
 
@@ -70,8 +55,8 @@ final readonly class MapLayers
 
     /**
      * How far apart, in pixels, points have to be before they are drawn as
-     * separate markers. The widget's own default of 40 leaves clusters
-     * jostling and points sitting on their edges; this buys them room.
+     * separate markers. Wider than the library's own default, which leaves
+     * groups jostling and points sitting on their edges; this buys them room.
      */
     public const int CLUSTER_DISTANCE = 80;
 
@@ -98,12 +83,6 @@ final readonly class MapLayers
      * How much map is left around a group once zoomed to it, in pixels.
      */
     public const int ZOOM_PADDING = 90;
-
-    /**
-     * Where each kind of layer sits in the stack.
-     */
-    public const int Z_AREAS = 10;
-    public const int Z_POINTS = 20;
 
     /**
      * The data sets, in the order they are to be drawn.
