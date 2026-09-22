@@ -1,4 +1,4 @@
-# 002: Data modelling
+# 002: Data modeling
 
 | Field              | Value                                                  |
 |--------------------|--------------------------------------------------------|
@@ -18,8 +18,8 @@ so selecting a standardized model for data, seems to be the way to go.
 
 A few different options seem to be available, but since Smart Data Models
 is the de-facto vocabulary of the NGSI-LD ecosystem, we choose to go with that.
-Which model a given data set uses is a decision for that data set, and will
-each include its own ADR.
+Which model a given data set uses is a decision for that data set, and has
+to be documented.
 
 Coverage is uneven, so some data sets will have no existing model to fit.
 When this happens, we will draft a new model contribution, add a temporary

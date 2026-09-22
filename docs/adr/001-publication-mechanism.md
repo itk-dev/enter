@@ -24,6 +24,9 @@ We considered two options: an NGSI-LD context broker or a REST API.
 
 We will publish to a **NGSI-LD context broker, specifically Scorpio**.
 
+@TODO Vi har potentielt store mængder af data som skal behandles, og vi har brug
+for noget som kan håndtere disse mængder, og som er veldokumenteret.
+
 We have extensive experience with regular REST APIs, but not a lot of experience
 with serving geospatial data and working with geospatial queries.
 
@@ -32,12 +35,14 @@ advantages of using the tools that come with the Scorpio broker, along with the
 opportunity to dabble in some of the technology and methodology that relates to
 digital twins.
 
-What we take from the broker up front is interoperability and strong querying.
+What we take from the broker up front is interoperability and strong querying
+@TODO hvorfor er en broker smart ift at outputte GEOJSON.
+
 Data conflation and progressive enrichment will be a large part of this project,
-and the broker architecture lends itself to that kind of work.
+and the broker architecture lends itself to that kind of work. 
 
 We choose Scorpio because it is already used in other projects and its feature
-coverage fits the project requirements well.
+coverage fits the project requirements well. 
 
 ## Consequences
 
@@ -45,7 +50,6 @@ coverage fits the project requirements well.
 
 - Geospatial and attribute queries and pagination arrive as a standard interface
   rather than one we design, document and version ourselves.
-- Payloads reference a shared vocabulary, so we need to define no terms of our own.
 - Additional data sets reach every existing consumer with no integration work.
 - Subscriptions let consumers be notified when data they care about changes,
   including within a geographic area, without polling.
@@ -53,9 +57,5 @@ coverage fits the project requirements well.
 ### Harder
 
 - We run, patch, monitor and back up several services.
-- Vocabulary documents are fetched over the network during writes, making
-  third-party availability part of our import path.
 - Upsert never removes, so records that disappear upstream persist until we build
   reconciliation.
-- NGSI-LD is a learning curve for us, and fitting data to a shared vocabulary costs
-  effort that publishing as-is would not.
