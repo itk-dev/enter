@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* [PR-35](https://github.com/itk-dev/enter/pull/35)
+  Removed DDEV setup
 * [PR-31](https://github.com/itk-dev/enter/pull/31)
   Made test sources independent from real sources
 * [PR-28](https://github.com/itk-dev/enter/pull/28)
