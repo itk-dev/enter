@@ -337,6 +337,9 @@ export async function drawMap({ map: element, toggles, spec: specUrl }) {
 
     const coinciding = collections[collections.length - 1];
 
+    /* The data sets currently switched on. */
+    const shown = new Set(spec.layers.map((layer) => layer.id));
+
     map.addSource(spec.cluster.id, {
         type: "geojson",
         data: coinciding,
@@ -344,6 +347,20 @@ export async function drawMap({ map: element, toggles, spec: specUrl }) {
         clusterRadius: spec.cluster.distance,
         clusterMaxZoom: Math.ceil(switchZoom),
     });
+
+    /**
+     * The grouped view holds every data set in one source, so a data set is
+     * taken out of it rather than hidden: a group counts what is drawn, and a
+     * hidden point would still be counted.
+     */
+    function regroup() {
+        map.getSource(spec.cluster.id).setData({
+            type: "FeatureCollection",
+            features: coinciding.features.filter((feature) =>
+                shown.has(feature.properties.dataset),
+            ),
+        });
+    }
 
     /* The grouped view is what is drawn while the map is too far out. */
     const grouped = { source: spec.cluster.id, maxzoom: switchZoom };
@@ -464,6 +481,14 @@ export async function drawMap({ map: element, toggles, spec: specUrl }) {
         for (const id of belonging[layer.id]) {
             map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
         }
+
+        if (on) {
+            shown.add(layer.id);
+        } else {
+            shown.delete(layer.id);
+        }
+
+        regroup();
     });
 
     /* Reachable from the console. */
