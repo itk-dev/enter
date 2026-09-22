@@ -1,22 +1,12 @@
 /*
- * What the Leaflet and the MapLibre map have in common.
- *
- * The two are here to be compared, so everything that is not the library
- * itself — where the map opens, what a popup says, how long a movement takes,
- * how the toggles look — is decided once and shared. A difference between the
- * two tabs is then a difference between the libraries.
+ * What the map needs that is not MapLibre itself: where its description is to
+ * be had, what a popup says, how long a movement takes, how the toggles look.
  */
 
 const EQUATOR = 40075016.686;
 
-/*
- * How wide the world is at zoom 0, which is not something the libraries agree
- * on: Leaflet and the slippy-map convention put it at 256 pixels, MapLibre at
- * 512. The same zoom number is therefore a different scale in each, so the
- * conversions below are told which world they are converting for.
- */
-export const SLIPPY_WORLD = 256;
-export const GL_WORLD = 512;
+/* How wide the world is at zoom 0, in pixels: MapLibre cuts its tiles at 512. */
+const WORLD = 512;
 
 /*
  * The markings drawn around whatever a click landed on, one colour each so a
@@ -48,23 +38,23 @@ const MIN_TRAVEL = 450;
 const MAX_TRAVEL = 1100;
 const PER_LEVEL = 130;
 
-/* The attributes the popup leaves out, as the widget's template does. */
-const UNPRINTABLE = ["geometry", "source", "features"];
+/* The attributes the popup leaves out: the source is what the heading says. */
+const UNPRINTABLE = ["source"];
 
 /**
  * Metres to the pixel at a zoom level, where a zoom level means whatever the
  * library says it means and a metre does not.
  */
-export function groundResolution(latitude, zoom, world = SLIPPY_WORLD) {
+export function groundResolution(latitude, zoom) {
     const width = EQUATOR * Math.cos((latitude * Math.PI) / 180);
 
-    return width / (world * 2 ** zoom);
+    return width / (WORLD * 2 ** zoom);
 }
 
-export function zoomForResolution(latitude, resolution, world = SLIPPY_WORLD) {
+export function zoomForResolution(latitude, resolution) {
     const width = EQUATOR * Math.cos((latitude * Math.PI) / 180);
 
-    return Math.log2(width / (world * resolution));
+    return Math.log2(width / (WORLD * resolution));
 }
 
 /**
@@ -136,10 +126,10 @@ export function boundsOf(features) {
 }
 
 /**
- * The elements a map page offers, and where its description is to be had.
+ * The elements the page offers, and where the map's description is to be had.
  *
- * Each map is an entrypoint of its own, so it starts itself rather than being
- * handed anything: what it needs is on the page it was loaded onto.
+ * The map starts itself rather than being handed anything: what it needs is
+ * on the page it was loaded onto.
  */
 export function target() {
     const element = document.querySelector(".test-map[data-spec]");
@@ -151,7 +141,6 @@ export function target() {
     return {
         map: element,
         toggles: document.querySelector(".test-map-toggles"),
-        panel: document.querySelector(".test-map-stats"),
         spec: element.dataset.spec,
     };
 }
@@ -166,20 +155,15 @@ export async function loadSpec(url) {
     return response.json();
 }
 
-/**
- * One data set's features, and how long they took to arrive.
- */
+/** One data set's features. */
 export async function loadFeatures(url) {
-    const started = performance.now();
     const response = await fetch(url);
 
     if (!response.ok) {
         throw new Error(`Kunne ikke hente data: ${response.status}`);
     }
 
-    const collection = await response.json();
-
-    return { collection, milliseconds: performance.now() - started };
+    return response.json();
 }
 
 function escapeHtml(value) {
@@ -195,8 +179,7 @@ function escapeHtml(value) {
  * the data set it came from in the colour it was marked with.
  *
  * Which attributes an entity carries is the source's business, so this walks
- * whatever arrived rather than naming fields — the same as the template the
- * widget is given, so that all three popups say the same thing.
+ * whatever arrived rather than naming fields.
  */
 export function popupHtml(sections) {
     return sections
@@ -221,7 +204,7 @@ export function popupHtml(sections) {
 
             return [
                 '<div class="test-map-section">',
-                '<div class="widget-simple-title">',
+                '<div class="test-map-title">',
                 `<span class="test-map-swatch" style="background:${escapeHtml(colour)}"></span>`,
                 escapeHtml(title),
                 "</div>",
@@ -233,10 +216,10 @@ export function popupHtml(sections) {
 }
 
 /**
- * A toggle per data set, rendered where the widget detaches its own.
+ * A toggle per data set.
  *
- * The grouped view is left out, as it is for the widget: it is how the data
- * sets are drawn far out, not a data set of its own to be switched.
+ * The grouped view is left out: it is how the data sets are drawn far out,
+ * not a data set of its own to be switched.
  */
 export function buildToggles(element, layers, onToggle) {
     const list = document.createElement("div");
@@ -280,70 +263,4 @@ export function fitHeight(element, onResize) {
     window.addEventListener("load", fit);
 
     return fit;
-}
-
-/**
- * What the comparison is actually about, in numbers.
- *
- * Which map feels quicker is worth knowing but hard to argue with, so the page
- * also says how long the data took to arrive, how much of it there is, and how
- * many frames the map manages while it is being dragged about.
- */
-export function stats(element, library) {
-    const fields = {};
-
-    element.replaceChildren(
-        ...["bibliotek", "objekter", "hentet", "tegnet", "billeder/s"].map(
-            (name) => {
-                const field = document.createElement("span");
-                field.className = "test-map-stat";
-                field.innerHTML = `<span class="test-map-stat-name">${name}</span><span class="test-map-stat-value">–</span>`;
-                fields[name] = field.lastElementChild;
-
-                return field;
-            },
-        ),
-    );
-
-    fields["bibliotek"].textContent = library;
-
-    let frames = 0;
-    let since = performance.now();
-
-    const count = (now) => {
-        frames += 1;
-
-        if (now - since >= 500) {
-            fields["billeder/s"].textContent = Math.round(
-                (frames * 1000) / (now - since),
-            );
-            frames = 0;
-            since = now;
-        }
-
-        window.requestAnimationFrame(count);
-    };
-
-    window.requestAnimationFrame(count);
-
-    return {
-        /*
-         * The widget fetches its own data, so there is no fetching of ours to
-         * time on that tab; what cannot be told apart is left blank rather
-         * than guessed at.
-         */
-        loaded(features, fetched, drawn) {
-            const milliseconds = (value) =>
-                value === null || value === undefined
-                    ? "–"
-                    : `${Math.round(value)} ms`;
-
-            fields["objekter"].textContent = features.toLocaleString("da-DK");
-            fields["hentet"].textContent = milliseconds(fetched);
-            fields["tegnet"].textContent = milliseconds(drawn);
-        },
-        failed(message) {
-            fields["objekter"].textContent = message;
-        },
-    };
 }

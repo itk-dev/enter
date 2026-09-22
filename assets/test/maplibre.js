@@ -1,11 +1,9 @@
 /*
  * The test map, drawn by MapLibre.
  *
- * Where Leaflet has to be told when to stop drawing a data set and when to
- * group it, MapLibre does both itself: a layer carries the zoom levels it is
- * drawn between, and a source groups its own points. What is left here is
- * saying which data sets there are and what a click means, from the same
- * description the Leaflet map is given.
+ * A layer carries the zoom levels it is drawn between, and a source groups
+ * its own points, so what is left here is saying which data sets there are
+ * and what a click means, from the description the page is served.
  */
 
 import {
@@ -17,13 +15,11 @@ import {
     buildToggles,
     easing,
     fitHeight,
-    GL_WORLD,
     groundResolution,
     loadFeatures,
     loadSpec,
     northernmost,
     popupHtml,
-    stats,
     target,
     travelTime,
     zoomForResolution,
@@ -50,27 +46,24 @@ const EMPTY = { type: "FeatureCollection", features: [] };
 const POPUP_MARGIN = 12;
 const POPUP_PAN = 300;
 
-export async function drawMap({ map: element, toggles, panel, spec: specUrl }) {
+export async function drawMap({ map: element, toggles, spec: specUrl }) {
     const maplibregl = window.maplibregl;
-    const readout = stats(panel, "MapLibre");
 
     const spec = await loadSpec(specUrl);
     const { longitude, latitude, resolution } = spec.view;
 
     /*
-     * The same two resolutions the widget is given, said as zoom levels: a
-     * layer is drawn between zooms rather than between metres, and the map
-     * never leaves the latitude it opened at by enough to matter.
+     * The two resolutions the description gives, said as zoom levels: a layer
+     * is drawn between zooms rather than between metres, and the map never
+     * leaves the latitude it opened at by enough to matter.
      */
     const switchZoom = zoomForResolution(
         latitude,
         spec.cluster.untilResolution,
-        GL_WORLD,
     );
     const closestZoom = zoomForResolution(
         latitude,
         spec.cluster.closestResolution,
-        GL_WORLD,
     );
 
     const map = new maplibregl.Map({
@@ -92,7 +85,7 @@ export async function drawMap({ map: element, toggles, panel, spec: specUrl }) {
             ],
         },
         center: [longitude, latitude],
-        zoom: zoomForResolution(latitude, resolution, GL_WORLD),
+        zoom: zoomForResolution(latitude, resolution),
     });
 
     fitHeight(element, () => map.resize());
@@ -218,7 +211,6 @@ export async function drawMap({ map: element, toggles, panel, spec: specUrl }) {
      * The popup hangs above the northernmost corner of what was clicked, which
      * for a shape near the top of the screen puts it off the map entirely —
      * indistinguishable, to the reader, from having clicked nothing at all.
-     * Leaflet and the widget both move the map to bring their popup into view;
      * MapLibre leaves it where it falls, so it is moved here.
      */
     function panPopupIntoView() {
@@ -269,7 +261,7 @@ export async function drawMap({ map: element, toggles, panel, spec: specUrl }) {
             padding: spec.cluster.padding,
             maxZoom: closestZoom,
             duration: travelTime(
-                groundResolution(map.getCenter().lat, map.getZoom(), GL_WORLD),
+                groundResolution(map.getCenter().lat, map.getZoom()),
                 spec.cluster.closestResolution,
             ),
             easing,
@@ -278,29 +270,19 @@ export async function drawMap({ map: element, toggles, panel, spec: specUrl }) {
 
     const ready = new Promise((resolve) => map.on("load", resolve));
 
-    let fetched = 0;
-    let features = 0;
-
     const collections = await Promise.all(
         [...spec.layers.map((layer) => layer.url), spec.cluster.url].map(
-            async (url) => {
-                const loaded = await loadFeatures(url);
-                fetched = Math.max(fetched, loaded.milliseconds);
-
-                return loaded.collection;
-            },
+            loadFeatures,
         ),
     );
 
     await ready;
 
-    const started = performance.now();
-
     spec.layers.forEach((layer, position) => {
-        const collection = collections[position];
-        features += collection.features.length;
-
-        map.addSource(layer.id, { type: "geojson", data: collection });
+        map.addSource(layer.id, {
+            type: "geojson",
+            data: collections[position],
+        });
 
         belonging[layer.id] = [];
 
@@ -484,12 +466,8 @@ export async function drawMap({ map: element, toggles, panel, spec: specUrl }) {
         }
     });
 
-    /* Reachable from the console, as the widget is on the Septima tab. */
+    /* Reachable from the console. */
     window.enterMap = map;
-
-    map.once("idle", () => {
-        readout.loaded(features, fetched, performance.now() - started);
-    });
 }
 
 const where = target();
