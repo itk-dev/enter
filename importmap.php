@@ -24,10 +24,8 @@
  */
 return [
     'app' => ['path' => './assets/app.js', 'entrypoint' => true],
-    'septima-widget' => ['version' => '3.23.0'],
-    // The two test maps that are not the widget's. They are entrypoints
-    // because a relative import is only resolved through the importmap of an
-    // entrypoint that reaches it, and each of them reaches test/map.js.
-    'test/leaflet' => ['path' => './assets/test/leaflet.js', 'entrypoint' => true],
+    // The test map is an entrypoint of its own because a relative import is
+    // only resolved through the importmap of an entrypoint that reaches it,
+    // and this one reaches test/map.js.
     'test/maplibre' => ['path' => './assets/test/maplibre.js', 'entrypoint' => true],
 ];
