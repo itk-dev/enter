@@ -1,12 +1,21 @@
 {% extends 'base.html.twig' %}
 
-{% block content %}
-    {% set type = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking' %}
+{% block stylesheets %}
+    {{ parent() }}
+    {# Pinned: the map should change when we change it, not when a release does. #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+{% endblock %}
 
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+{% endblock %}
+
+{# An entrypoint of its own, since only this page draws a map. #}
+{% block importmap %}{{ importmap(['app', 'test/map']) }}{% endblock %}
+
+{% block content %}
     <h2>{{ type }}</h2>
 
-    <div data-widget-url="{{ path('test_config', {type: type}) }}"></div>
-    {# <script src="https://widget.cdn.septima.dk/3.23.0/widgetconfig.js"></script> #}
-    {# https://github.com/Septima/widget-issues/issues/24#issuecomment-5478400091 #}
-    <script src="https://widget.cdn.septima.dk/3.19.0/widgetconfig.js"></script>
+    <div class="test-map" data-urls="{{ urls|json_encode }}"></div>
 {% endblock %}

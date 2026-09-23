@@ -24,5 +24,5 @@
  */
 return [
     'app' => ['path' => './assets/app.js', 'entrypoint' => true],
-    'septima-widget' => ['version' => '3.23.0'],
+    'test/map' => ['path' => './assets/test/map.js', 'entrypoint' => true],
 ];

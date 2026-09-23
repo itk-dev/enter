@@ -13,11 +13,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
-use Symfony\Component\Yaml\Yaml;
 
 #[When('dev')]
 #[When('test')]
@@ -30,10 +28,27 @@ final class TestController extends AbstractController
     private const string APPLICATION_GEOJSON = 'application/geo+json';
     private const string APPLICATION_JSON = 'application/json';
 
-    #[Route('/{path}', name: 'default', requirements: ['path' => Requirement::CATCH_ALL], methods: [Request::METHOD_GET], priority: -99)]
-    public function index(?string $path = null): Response
+    /**
+     * The one model the map draws.
+     */
+    private const string TYPE_ON_STREET_PARKING = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking';
+
+    /**
+     * The developer map: what the test sources published, as the broker
+     * holds it.
+     */
+    #[Route('', name: 'default', methods: [Request::METHOD_GET])]
+    public function index(SourceManager $manager): Response
     {
-        return $this->render(null === $path ? 'test/index.html.twig' : sprintf('test/%s.html.twig', $path));
+        $urls = [];
+        foreach (array_keys($this->testSources($manager)) as $id) {
+            $urls[] = $this->generateUrl('test_map', ['sourceId' => $id, 'type' => self::TYPE_ON_STREET_PARKING]);
+        }
+
+        return $this->render('test/index.html.twig', [
+            'type' => self::TYPE_ON_STREET_PARKING,
+            'urls' => $urls,
+        ]);
     }
 
     #[Route(
@@ -63,21 +78,6 @@ final class TestController extends AbstractController
         return new BinaryFileResponse($path, headers: [
             'content-type' => $contentType,
         ]);
-    }
-
-    #[Route('/config', name: 'config', methods: [Request::METHOD_GET])]
-    public function config(
-        #[MapQueryParameter('type')]
-        string $type,
-    ): JsonResponse {
-        $configName = match ($type) {
-            'https://smartdatamodels.org/dataModel.Parking/OnStreetParking' => 'Parking/OnStreetParking',
-            default => throw new BadRequestHttpException('Invalid type'),
-        };
-
-        $data = Yaml::parseFile(__DIR__.'/../../tests/resources/config/'.$configName.'.yaml');
-
-        return new JsonResponse($data);
     }
 
     /**
