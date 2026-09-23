@@ -1,0 +1,89 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Source\MtmSpatialMaps;
+
+use App\Geo\Wgs84Transformer;
+use App\Ngsi\NgsiEntity;
+use App\Source\AbstractSource;
+use App\Source\DataType;
+use App\Source\Definition;
+
+/**
+ * Public toilets outside the city-kiosk network in Aarhus Municipality:
+ * beach, park and forest facilities, seasonal or access-restricted.
+ *
+ * Geometry is published as MultiPoint throughout this feed.
+ */
+#[Definition(
+    id: 'mtm_spatialmaps-toilet-other',
+    title: 'Andre toiletter, Aarhus Kommune',
+    description: 'Public toilets outside the city-kiosk network in Aarhus Municipality, including seasonal and access-restricted facilities.',
+    publisher: 'Aarhus Kommune',
+    contact: 'ppg@aarhus.dk',
+    landingPage: 'https://www.opendata.dk/city-of-aarhus',
+
+    accessUrl: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter',
+    dataType: DataType::GeoJSON,
+    mediaType: 'application/geo+json',
+    crs: 'EPSG:25832',
+    model: 'PublicToilet',
+    contextUrl: 'https://schema.org/docs/jsonldcontext.json',
+    updateFrequency: 'continuous',
+
+    // The portal states no licence for this data set. DCAT-AP requires one, so
+    // it has to be settled with the data owner before the catalogue can be
+    // registered anywhere.
+    licence: null,
+
+    omittedFields: [
+        'bookbar' => 'Bookable flag; constant "Nej" throughout the export.',
+        'oprettet_af' => 'Directory username of the municipal employee who created the record.',
+        'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
+        'oprettet_dato' => 'Describes the register record.',
+        'rettet_dato' => 'Describes the register record.',
+        'mi_style' => 'MapInfo rendering style.',
+    ],
+)]
+final class ToiletOther extends AbstractSource
+{
+    /**
+     * Maps one feed record onto an NgsiEntity.
+     */
+    public function createNgsiEntity(array $data, Wgs84Transformer $transformer): ?NgsiEntity
+    {
+        $row = $data['properties'] ?? null;
+        $geometry = $data['geometry'] ?? null;
+
+        if (!\is_array($row) || !\is_array($geometry)) {
+            return null;
+        }
+
+        // mi_prinx is the feed's stable primary key. Without it there is no
+        // way to address the same record again on the next import, and an
+        // upsert would create duplicates instead of updating.
+        $key = $row['mi_prinx'] ?? null;
+        if (null === $key || '' === $key) {
+            return null;
+        }
+
+        $entity = new NgsiEntity(
+            \sprintf('urn:ngsi-ld:%s:aarhus-toilet-other-%s', $this->definition->model, $key),
+            $this->definition->model
+        );
+
+        return $entity
+            ->setProperty('name', trim((string) ($row['navn'] ?? '')))
+            ->setProperty('description', trim((string) ($row['beskrivelse'] ?? '')))
+            ->setProperty('address', trim((string) ($row['adresse'] ?? '')))
+            ->setProperty('source', $this->definition->accessUrl)
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
+
+            // Access scheme and season have no counterpart on the model.
+            ->additionalInformation([
+                'accessType' => trim((string) ($row['type'] ?? '')),
+                'season' => trim((string) ($row['saeson'] ?? '')),
+            ]);
+    }
+}
