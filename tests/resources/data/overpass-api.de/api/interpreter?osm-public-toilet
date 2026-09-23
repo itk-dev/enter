@@ -1,0 +1,42 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "elements": [
+    {
+      "type": "node",
+      "id": 1234567890,
+      "lat": 56.1496,
+      "lon": 10.2134,
+      "tags": {
+        "amenity": "toilets",
+        "wheelchair": "yes",
+        "name": "Offentligt toilet"
+      }
+    },
+    {
+      "type": "way",
+      "id": 987654321,
+      "center": {
+        "lat": 56.1512,
+        "lon": 10.2101
+      },
+      "tags": {
+        "amenity": "toilets",
+        "toilets:wheelchair": "yes",
+        "description": "Toilet ved parken"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 555666777,
+      "center": {
+        "lat": 56.1523,
+        "lon": 10.2088
+      },
+      "tags": {
+        "amenity": "toilets",
+        "wheelchair": "yes"
+      }
+    }
+  ]
+}
