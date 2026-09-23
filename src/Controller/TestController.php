@@ -2,6 +2,10 @@
 
 namespace App\Controller;
 
+use App\Source\SourceInterface;
+use App\SourceManager;
+use App\Test\Map\SourceFeatures;
+use App\Test\Source\TestDefinition;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\When;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -74,5 +78,41 @@ final class TestController extends AbstractController
         $data = Yaml::parseFile(__DIR__.'/../../tests/resources/config/'.$configName.'.yaml');
 
         return new JsonResponse($data);
+    }
+
+    /**
+     * What one test source published, as the broker holds it.
+     */
+    #[Route(
+        path: '/map/{sourceId}.{_format}',
+        name: 'map',
+        methods: [Request::METHOD_GET],
+        requirements: ['sourceId' => '[^/.]+', '_format' => self::FORMAT_GEOJSON],
+        defaults: ['_format' => self::FORMAT_GEOJSON],
+    )]
+    public function map(
+        string $sourceId,
+        #[MapQueryParameter('type')]
+        string $type,
+        SourceManager $manager,
+        SourceFeatures $features,
+    ): JsonResponse {
+        $source = $this->testSources($manager)[$sourceId]
+            ?? throw new NotFoundHttpException(sprintf('No test source "%s".', $sourceId));
+
+        return new JsonResponse($features->forSource($source, $type), headers: [
+            'content-type' => self::APPLICATION_GEOJSON,
+        ]);
+    }
+
+    /**
+     * @return array<string, SourceInterface>
+     */
+    private function testSources(SourceManager $manager): array
+    {
+        return array_filter(
+            $manager->getSources(),
+            static fn (SourceInterface $source): bool => $source->definition instanceof TestDefinition
+        );
     }
 }
