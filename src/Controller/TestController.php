@@ -68,6 +68,7 @@ final class TestController extends AbstractController
     ): JsonResponse {
         $configName = match ($type) {
             'https://smartdatamodels.org/dataModel.Parking/OnStreetParking' => 'Parking/OnStreetParking',
+            'http://schema.org/PublicToilet' => 'PublicToilet',
             default => throw new BadRequestHttpException('Invalid type'),
         };
 
