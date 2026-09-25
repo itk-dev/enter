@@ -9,8 +9,19 @@
       "lon": 10.2134,
       "tags": {
         "amenity": "toilets",
-        "wheelchair": "yes",
-        "name": "Offentligt toilet"
+        "building": "yes",
+        "fee": "no",
+        "indoor": "yes",
+        "name": "Offentligt toilet",
+        "seasonal": "summer",
+        "supervised": "no",
+        "toilets:changing_table": "no",
+        "toilets:disposal": "flush",
+        "toilets:handwashing": "yes",
+        "toilets:paper_supplied": "yes",
+        "toilets:position": "seated",
+        "unisex": "yes",
+        "wheelchair": "no"
       }
     },
     {
@@ -23,7 +34,11 @@
       "tags": {
         "amenity": "toilets",
         "toilets:wheelchair": "yes",
-        "description": "Toilet ved parken"
+        "changing_table": "yes",
+        "description": "Toilet ved parken",
+        "fee": "yes",
+        "access": "customers",
+        "opening_hours": "Mo-Su 08:00-20:00"
       }
     },
     {
@@ -35,7 +50,7 @@
       },
       "tags": {
         "amenity": "toilets",
-        "wheelchair": "no"
+        "wheelchair": "limited"
       }
     },
     {

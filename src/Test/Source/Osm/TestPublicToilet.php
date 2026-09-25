@@ -28,6 +28,7 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     contextUrl: 'https://schema.org/docs/jsonldcontext.json',
     omittedFields: [
         'amenity' => 'Selector; every record is published under the one model this source names.',
+        'building' => 'States that the toilet occupies a building of its own; a fact about the structure rather than the facility.',
     ],
     dataUrlBase: 'https://overpass-api.de/api/interpreter',
     dataUrlQuery: [
@@ -70,12 +71,37 @@ final class TestPublicToilet extends AbstractSource
         return $entity
             ->setProperty('name', trim((string) ($tags['name'] ?? '')))
             ->setProperty('description', trim((string) ($tags['description'] ?? '')))
+            ->setProperty('openingHours', trim((string) ($tags['opening_hours'] ?? '')))
+            ->setProperty('isAccessibleForFree', $this->isAccessibleForFree($tags))
             ->setProperty('source', $this->definition->accessUrl)
             ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
             ->additionalInformation([
                 'wheelchair' => trim((string) ($tags['wheelchair'] ?? '')),
                 'toiletsWheelchair' => trim((string) ($tags['toilets:wheelchair'] ?? '')),
+                'changingTable' => trim((string) ($tags['changing_table'] ?? '')),
+                'toiletsChangingTable' => trim((string) ($tags['toilets:changing_table'] ?? '')),
+                'disposal' => trim((string) ($tags['toilets:disposal'] ?? '')),
+                'position' => trim((string) ($tags['toilets:position'] ?? '')),
+                'handwashing' => trim((string) ($tags['toilets:handwashing'] ?? '')),
+                'paperSupplied' => trim((string) ($tags['toilets:paper_supplied'] ?? '')),
+                'unisex' => trim((string) ($tags['unisex'] ?? '')),
+                'indoor' => trim((string) ($tags['indoor'] ?? '')),
+                'seasonal' => trim((string) ($tags['seasonal'] ?? '')),
+                'supervised' => trim((string) ($tags['supervised'] ?? '')),
+                'access' => trim((string) ($tags['access'] ?? '')),
             ]);
+    }
+
+    /**
+     * @param array<string, mixed> $tags
+     */
+    private function isAccessibleForFree(array $tags): ?bool
+    {
+        return match ($tags['fee'] ?? null) {
+            'no' => true,
+            'yes' => false,
+            default => null,
+        };
     }
 
     /**

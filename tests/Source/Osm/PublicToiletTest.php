@@ -88,26 +88,64 @@ class PublicToiletTest extends TestCase
         $this->assertArrayNotHasKey('description', $this->entities[0]);
     }
 
-    public function testItCarriesWheelchairAccessAsAdditionalInformation(): void
+    public function testItCarriesTheFacilityTagsAsAdditionalInformation(): void
     {
         $this->assertSame(
-            ['wheelchair' => 'yes'],
+            [
+                'wheelchair' => 'no',
+                'toiletsChangingTable' => 'no',
+                'disposal' => 'flush',
+                'position' => 'seated',
+                'handwashing' => 'yes',
+                'paperSupplied' => 'yes',
+                'unisex' => 'yes',
+                'indoor' => 'yes',
+                'seasonal' => 'summer',
+                'supervised' => 'no',
+            ],
             $this->entities[0]['additionalInformation']['value']
         );
+    }
+
+    public function testItKeepsAGeneralTagAndItsToiletsRefinementApart(): void
+    {
+        // The place a record sits on may be larger than the toilet within it,
+        // so the two forms are not interchangeable.
         $this->assertSame(
-            ['toiletsWheelchair' => 'yes'],
+            [
+                'toiletsWheelchair' => 'yes',
+                'changingTable' => 'yes',
+                'access' => 'customers',
+            ],
             $this->entities[1]['additionalInformation']['value']
         );
     }
 
-    public function testItCarriesWheelchairAccessTheFeedStatesAsAbsent(): void
+    public function testItCarriesAnAccessValueThatIsNeitherYesNorNo(): void
     {
-        // The query no longer filters on access, so "no" is a real answer
-        // rather than a record that would never have been selected.
+        // wheelchair is not a boolean; "limited" is a real answer and is
+        // published as the feed states it.
         $this->assertSame(
-            ['wheelchair' => 'no'],
+            ['wheelchair' => 'limited'],
             $this->entities[2]['additionalInformation']['value']
         );
+    }
+
+    public function testItMapsTheFeeTagOntoFreeAccess(): void
+    {
+        $this->assertTrue($this->entities[0]['isAccessibleForFree']['value']);
+        $this->assertFalse($this->entities[1]['isAccessibleForFree']['value']);
+    }
+
+    public function testItOmitsFreeAccessWhenNoFeeIsStated(): void
+    {
+        $this->assertArrayNotHasKey('isAccessibleForFree', $this->entities[2]);
+    }
+
+    public function testItPublishesOpeningHoursWhenStated(): void
+    {
+        $this->assertSame('Mo-Su 08:00-20:00', $this->entities[1]['openingHours']['value']);
+        $this->assertArrayNotHasKey('openingHours', $this->entities[0]);
     }
 
     public function testItOmitsAdditionalInformationWhenNeitherTagIsStated(): void
@@ -126,10 +164,22 @@ class PublicToiletTest extends TestCase
                 'id' => 1234567890,
                 'lat' => 56.1496,
                 'lon' => 10.2134,
+                // The full tag set of a real record in this area.
                 'tags' => [
                     'amenity' => 'toilets',
-                    'wheelchair' => 'yes',
+                    'building' => 'yes',
+                    'fee' => 'no',
+                    'indoor' => 'yes',
                     'name' => 'Offentligt toilet',
+                    'seasonal' => 'summer',
+                    'supervised' => 'no',
+                    'toilets:changing_table' => 'no',
+                    'toilets:disposal' => 'flush',
+                    'toilets:handwashing' => 'yes',
+                    'toilets:paper_supplied' => 'yes',
+                    'toilets:position' => 'seated',
+                    'unisex' => 'yes',
+                    'wheelchair' => 'no',
                 ],
             ],
             [
@@ -139,7 +189,11 @@ class PublicToiletTest extends TestCase
                 'tags' => [
                     'amenity' => 'toilets',
                     'toilets:wheelchair' => 'yes',
+                    'changing_table' => 'yes',
                     'description' => 'Toilet ved parken',
+                    'fee' => 'yes',
+                    'access' => 'customers',
+                    'opening_hours' => 'Mo-Su 08:00-20:00',
                 ],
             ],
             [
@@ -148,7 +202,7 @@ class PublicToiletTest extends TestCase
                 'center' => ['lat' => 56.1523, 'lon' => 10.2088],
                 'tags' => [
                     'amenity' => 'toilets',
-                    'wheelchair' => 'no',
+                    'wheelchair' => 'limited',
                 ],
             ],
             [

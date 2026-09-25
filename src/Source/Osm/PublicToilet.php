@@ -44,6 +44,7 @@ DATA,
 
     omittedFields: [
         'amenity' => 'Selector; every record is published under the one model this source names.',
+        'building' => 'States that the toilet occupies a building of its own; a fact about the structure rather than the facility.',
     ],
 )]
 final class PublicToilet extends AbstractSource
@@ -79,17 +80,50 @@ final class PublicToilet extends AbstractSource
         return $entity
             ->setProperty('name', trim((string) ($tags['name'] ?? '')))
             ->setProperty('description', trim((string) ($tags['description'] ?? '')))
+            ->setProperty('openingHours', trim((string) ($tags['opening_hours'] ?? '')))
+            ->setProperty('isAccessibleForFree', $this->isAccessibleForFree($tags))
             ->setProperty('source', $this->definition->accessUrl)
             ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
 
-            // Wheelchair access is stated by two tags that the model has no
-            // attribute for: the general one describes the place, the
-            // refinement describes the toilet itself. Both are carried as the
-            // feed states them, and a record stating neither carries neither.
+            // Facility facts the model has no attribute for, carried as the
+            // feed states them. A record carries only the tags it has.
+            //
+            // Two of them are stated by a general tag and a toilets: prefixed
+            // refinement: the general one describes the place the record sits
+            // on, which may be larger than the toilet, and the refinement
+            // describes the toilet itself. Both are kept, because a place and
+            // the toilet within it can differ.
             ->additionalInformation([
                 'wheelchair' => trim((string) ($tags['wheelchair'] ?? '')),
                 'toiletsWheelchair' => trim((string) ($tags['toilets:wheelchair'] ?? '')),
+                'changingTable' => trim((string) ($tags['changing_table'] ?? '')),
+                'toiletsChangingTable' => trim((string) ($tags['toilets:changing_table'] ?? '')),
+                'disposal' => trim((string) ($tags['toilets:disposal'] ?? '')),
+                'position' => trim((string) ($tags['toilets:position'] ?? '')),
+                'handwashing' => trim((string) ($tags['toilets:handwashing'] ?? '')),
+                'paperSupplied' => trim((string) ($tags['toilets:paper_supplied'] ?? '')),
+                'unisex' => trim((string) ($tags['unisex'] ?? '')),
+                'indoor' => trim((string) ($tags['indoor'] ?? '')),
+                'seasonal' => trim((string) ($tags['seasonal'] ?? '')),
+                'supervised' => trim((string) ($tags['supervised'] ?? '')),
+                'access' => trim((string) ($tags['access'] ?? '')),
             ]);
+    }
+
+    /**
+     * The fee tag states whether using the toilet costs anything. Only its two
+     * plain values map; an untagged or unrecognised value states nothing about
+     * charging rather than assuming it is free.
+     *
+     * @param array<string, mixed> $tags
+     */
+    private function isAccessibleForFree(array $tags): ?bool
+    {
+        return match ($tags['fee'] ?? null) {
+            'no' => true,
+            'yes' => false,
+            default => null,
+        };
     }
 
     /**
