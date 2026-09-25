@@ -6,7 +6,7 @@
 | **Date**           | 2026-08-31                                             |
 | **Decision Maker** | ITK Dev team                                           |
 | **Stakeholders**   | ITK Dev developers, data consumers, future maintainers |
-| **Status**         | Draft                                                  |
+| **Status**         | Accepted                                               |
 
 ## Context
 

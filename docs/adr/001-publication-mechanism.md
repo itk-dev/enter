@@ -6,7 +6,7 @@
 | **Date**           | 2026-08-24                                             |
 | **Decision Maker** | ITK Dev team                                           |
 | **Stakeholders**   | ITK Dev developers, data consumers, future maintainers |
-| **Status**         | Draft                                                  |
+| **Status**         | Accepted                                               |
 
 ## Context
 
@@ -24,8 +24,8 @@ We considered two options: an NGSI-LD context broker or a REST API.
 
 We will publish to a **NGSI-LD context broker, specifically Scorpio**.
 
-@TODO Vi har potentielt store mængder af data som skal behandles, og vi har brug
-for noget som kan håndtere disse mængder, og som er veldokumenteret.
+The system may need to store and transform a large volume of data, 
+so we need a well-documented solution that can handle that scale.
 
 We have extensive experience with regular REST APIs, but not a lot of experience
 with serving geospatial data and working with geospatial queries.
@@ -35,8 +35,10 @@ advantages of using the tools that come with the Scorpio broker, along with the
 opportunity to dabble in some of the technology and methodology that relates to
 digital twins.
 
-What we take from the broker up front is interoperability and strong querying
-@TODO hvorfor er en broker smart ift at outputte GEOJSON.
+What we take from the broker up front is interoperability and strong querying. NGSI-LD
+stores location as a native property type, so Scorpio can return any query result as
+GeoJSON on request. Consumers get GeoJSON that is filtered, paginated and generated from
+current data, across all data sets.
 
 Data conflation and progressive enrichment will be a large part of this project,
 and the broker architecture lends itself to that kind of work. 
