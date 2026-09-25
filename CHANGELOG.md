@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* [PR-45](https://github.com/itk-dev/enter/pull/45)
+  Update public toilet source with mtm_spatialmaps-toilet-other
 * [PR-35](https://github.com/itk-dev/enter/pull/35)
   Removed DDEV setup
 * [PR-31](https://github.com/itk-dev/enter/pull/31)
