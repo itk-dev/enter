@@ -1,10 +1,3 @@
-.test-map-heading {
-    font-size: 1rem;
-    font-weight: 400;
-    color: #666;
-    word-break: break-all;
-}
-
 .test-map-toggles {
     margin-bottom: 0.5rem;
 }
@@ -47,6 +40,11 @@
 .test-map-toggle:focus-visible {
     outline: 2px solid #1f5fd0;
     outline-offset: 2px;
+}
+
+.test-map-toggle-model {
+    color: #666;
+    font-size: 0.8rem;
 }
 
 .test-map {

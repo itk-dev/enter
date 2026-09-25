@@ -13,11 +13,9 @@
 {% block importmap %}{{ importmap(['app', 'test/maplibre']) }}{% endblock %}
 
 {% block content %}
-    <h2 class="test-map-heading">{{ type }}</h2>
-
     <div class="test-map-toggles"></div>
 
-    <div class="test-map" data-spec="{{ path('test_spec', {type: type}) }}"></div>
+    <div class="test-map" data-spec="{{ path('test_spec') }}"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 {% endblock %}

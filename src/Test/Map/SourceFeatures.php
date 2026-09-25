@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Test\Map;
 
 use App\Broker\BrokerReader;
+use App\Source\Definition;
 use App\Source\SourceInterface;
 
 /**
@@ -18,7 +19,7 @@ final readonly class SourceFeatures
      * The attribute every source stamps its access URL onto, and so the only
      * thing in the payload that says which data set an entity came from.
      */
-    private const string SOURCE_ATTRIBUTE = 'https://smartdatamodels.org/source';
+    private const string SOURCE_ATTRIBUTE = 'source';
 
     public function __construct(
         private BrokerReader $reader,
@@ -26,13 +27,11 @@ final readonly class SourceFeatures
     }
 
     /**
-     * @param string $type the expanded entity type, as the map asks for it
-     *
      * @return array{type: string, features: list<array<string, mixed>>}
      */
-    public function forSource(SourceInterface $source, string $type): array
+    public function forSource(SourceInterface $source): array
     {
-        return $this->collect([$source], $type);
+        return $this->collect([$source]);
     }
 
     /**
@@ -47,9 +46,9 @@ final readonly class SourceFeatures
      *
      * @return array{type: string, features: list<array<string, mixed>>}
      */
-    public function forSources(array $sources, string $type): array
+    public function forSources(array $sources): array
     {
-        return $this->collect(array_values($sources), $type, array_keys($sources), asPoints: true);
+        return $this->collect(array_values($sources), array_keys($sources), asPoints: true);
     }
 
     /**
@@ -58,38 +57,83 @@ final readonly class SourceFeatures
      *
      * @return array{type: string, features: list<array<string, mixed>>}
      */
-    private function collect(array $sources, string $type, ?array $ids = null, bool $asPoints = false): array
+    private function collect(array $sources, ?array $ids = null, bool $asPoints = false): array
     {
-        // Once, however many sources are being answered for: they all publish
-        // into the one model, and the broker has no way to tell them apart.
-        $collection = $this->reader->readAll(
-            self::ENTITIES_PATH,
-            ['type' => $type],
-            ['accept' => 'application/geo+json'],
-        );
-
         $owners = [];
         foreach ($sources as $position => $source) {
             $owners[$source->definition->accessUrlBase()] = $ids[$position] ?? $source->definition->id;
         }
 
         $features = [];
-        foreach ($collection['features'] ?? [] as $feature) {
-            $owner = $owners[$this->sourceOf($feature)] ?? null;
-            if (null === $owner) {
-                continue;
+        foreach ($this->models($sources) as $definition) {
+            $collection = $this->reader->readAll(
+                self::ENTITIES_PATH,
+                ['type' => $definition->model],
+                ['accept' => 'application/geo+json', 'link' => $this->contextLink($definition->contextUrl)],
+            );
+
+            foreach ($collection['features'] ?? [] as $feature) {
+                $properties = $this->flatten($feature);
+                $owner = $this->ownerOf($properties, $owners);
+                if (null === $owner) {
+                    continue;
+                }
+
+                $geometry = $feature['geometry'] ?? null;
+
+                $features[] = [
+                    'type' => 'Feature',
+                    'geometry' => $asPoints ? $this->asPoint($geometry) : $geometry,
+                    'properties' => ['dataset' => $owner] + $properties,
+                ];
             }
-
-            $geometry = $feature['geometry'] ?? null;
-
-            $features[] = [
-                'type' => 'Feature',
-                'geometry' => $asPoints ? $this->asPoint($geometry) : $geometry,
-                'properties' => ['dataset' => $owner] + $this->flatten($feature),
-            ];
         }
 
         return ['type' => 'FeatureCollection', 'features' => $this->areasFirst($features)];
+    }
+
+    /**
+     * One definition per model the sources publish into, since the broker
+     * answers for one type at a time. Sources naming the same model under
+     * the same context share a read and are told apart afterwards.
+     *
+     * @param list<SourceInterface> $sources
+     *
+     * @return list<Definition>
+     */
+    private function models(array $sources): array
+    {
+        $models = [];
+        foreach ($sources as $source) {
+            $definition = $source->definition;
+            $models[$definition->contextUrl.' '.$definition->model] ??= $definition;
+        }
+
+        return array_values($models);
+    }
+
+    /**
+     * The context the source declared, handed to the broker so it can expand
+     * the model's short name into the type it holds the entities under, and
+     * shorten the attribute names on the way back.
+     */
+    private function contextLink(string $contextUrl): string
+    {
+        return sprintf('<%s>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"', $contextUrl);
+    }
+
+    /**
+     * The id of the source that stamped its access URL on the entity, if it
+     * is one of those asked for.
+     *
+     * @param array<string, mixed>  $properties the attributes under their short names
+     * @param array<string, string> $owners     source ids by access URL
+     */
+    private function ownerOf(array $properties, array $owners): ?string
+    {
+        $source = $properties[self::SOURCE_ATTRIBUTE] ?? null;
+
+        return \is_string($source) ? ($owners[$source] ?? null) : null;
     }
 
     /**
@@ -155,16 +199,6 @@ final readonly class SourceFeatures
     }
 
     /**
-     * @param array<string, mixed> $feature
-     */
-    private function sourceOf(array $feature): ?string
-    {
-        $source = $feature['properties'][self::SOURCE_ATTRIBUTE] ?? null;
-
-        return \is_array($source) ? ($source['value'] ?? null) : $source;
-    }
-
-    /**
      * The attributes under their short names, free of the Property wrapper.
      *
      * A template renders whatever it is handed, so an entity's own id travels
@@ -194,8 +228,9 @@ final readonly class SourceFeatures
     }
 
     /**
-     * The last segment of an expanded attribute name, which is the term the
-     * source declared before the broker expanded it.
+     * The last segment of an attribute name. An attribute the source's
+     * context has no term for comes back expanded, and the term the source
+     * declared is what the expansion ends in.
      */
     private function shortName(string $name): string
     {

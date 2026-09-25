@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace App\Test\Map;
 
 /**
- * One data set, as the map draws it: what it is called, which colour it
- * carries and whether it brings areas.
+ * One data set, as the map draws it: what it is called, which model it
+ * publishes into, which colour it carries and whether it brings areas.
  */
 final readonly class MapLayer
 {
     public function __construct(
         public string $id,
         public string $title,
+        public string $model,
         public string $url,
         public string $colour,
         /**

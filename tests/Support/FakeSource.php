@@ -29,6 +29,8 @@ final class FakeSource implements SourceInterface
         string $accessUrl,
         DataType $dataType = DataType::GeoJSON,
         ?string $id = null,
+        string $model = 'OnStreetParking',
+        string $contextUrl = 'https://example.com/context.jsonld',
     ): self {
         return new self(new TestDefinition(
             id: $id ?? strtolower($title),
@@ -37,8 +39,8 @@ final class FakeSource implements SourceInterface
             dataType: $dataType,
             mediaType: 'application/geo+json',
             crs: 'EPSG:4326',
-            model: 'OnStreetParking',
-            contextUrl: 'https://example.com/context.jsonld',
+            model: $model,
+            contextUrl: $contextUrl,
             omittedFields: [],
             sourceId: $id ?? strtolower($title),
         ));

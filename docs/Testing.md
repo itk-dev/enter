@@ -22,7 +22,8 @@ docker compose exec phpfpm php bin/console app:source:import test:mtm_spatialmap
 docker compose exec phpfpm curl 'http://scorpio:9090/ngsi-ld/v1/entities?type=https://smartdatamodels.org/dataModel.Parking/OnStreetParking'
 ```
 
-See the result on <https://enter.local.itkdev.dk/test>.
+See the result on <https://enter.local.itkdev.dk/test>. The map draws every test source under the model its
+definition names, so a new test source shows up without the map being told about it.
 
 ### Refreshing test source data
 

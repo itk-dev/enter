@@ -14,9 +14,9 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 
 class SourceFeaturesTest extends TestCase
 {
-    private const string TYPE = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking';
     private const string MINE = 'https://mine.example/feed';
     private const string THEIRS = 'https://theirs.example/feed';
+    private const string CONTEXT = 'https://mine.example/context.jsonld';
 
     public function testItKeepsOnlyTheFeaturesOfTheSourceAsked(): void
     {
@@ -29,12 +29,69 @@ class SourceFeaturesTest extends TestCase
         $this->assertSame(['a', 'c'], array_column(array_column($features, 'properties'), 'id'));
     }
 
+    /**
+     * The broker holds entities under the type the source's context expands
+     * its model to, so it is asked for the model under that context.
+     */
+    public function testItAsksForTheModelUnderTheSourcesOwnContext(): void
+    {
+        $response = $this->response([]);
+
+        new SourceFeatures(new BrokerReader(new MockHttpClient($response), 10000))
+            ->forSource(FakeSource::create('Mine', self::MINE, model: 'PublicToilet', contextUrl: self::CONTEXT));
+
+        parse_str((string) parse_url($response->getRequestUrl(), PHP_URL_QUERY), $query);
+
+        $this->assertSame('PublicToilet', $query['type']);
+        $this->assertStringContainsString(
+            '<'.self::CONTEXT.'>',
+            implode(' ', $response->getRequestOptions()['normalized_headers']['link'])
+        );
+    }
+
+    /**
+     * The broker answers for one type at a time, so sources publishing into
+     * different models are read separately, and sources sharing one are not.
+     */
+    public function testItReadsOncePerModel(): void
+    {
+        $asked = [];
+        $client = new MockHttpClient(function (string $method, string $url) use (&$asked): MockResponse {
+            parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+            $asked[] = $query['type'];
+
+            return $this->response(match ($query['type']) {
+                'OnStreetParking' => [$this->feature('bay', self::MINE), $this->feature('other-bay', self::THEIRS)],
+                'PublicToilet' => [$this->feature('toilet', 'https://toilets.example/feed')],
+                default => [],
+            });
+        });
+
+        $collection = new SourceFeatures(new BrokerReader($client, 10000))->forSources([
+            'mine' => FakeSource::create('Mine', self::MINE, id: 'mine'),
+            'theirs' => FakeSource::create('Theirs', self::THEIRS, id: 'theirs'),
+            'toilets' => FakeSource::create('Toilets', 'https://toilets.example/feed', id: 'toilets', model: 'PublicToilet'),
+        ]);
+
+        $this->assertSame(['OnStreetParking', 'PublicToilet'], $asked);
+        $this->assertSame(
+            ['bay' => 'mine', 'other-bay' => 'theirs', 'toilet' => 'toilets'],
+            array_column(array_column($collection['features'], 'properties'), 'dataset', 'id')
+        );
+    }
+
+    /**
+     * An attribute the source's context has no term for comes back expanded.
+     */
     public function testItNamesAttributesAsTheSourceDeclaredThem(): void
     {
-        $features = $this->read([$this->feature('a', self::MINE)]);
+        $feature = $this->feature('a', self::MINE);
+        $feature['properties']['https://uri.etsi.org/ngsi-ld/default-context/surface'] = ['type' => 'Property', 'value' => 'asphalt'];
 
-        $this->assertArrayHasKey('totalSpotNumber', $features[0]['properties']);
-        $this->assertArrayNotHasKey('https://smartdatamodels.org/dataModel.Parking/totalSpotNumber', $features[0]['properties']);
+        $features = $this->read([$feature]);
+
+        $this->assertSame('asphalt', $features[0]['properties']['surface']);
+        $this->assertArrayNotHasKey('https://uri.etsi.org/ngsi-ld/default-context/surface', $features[0]['properties']);
     }
 
     /**
@@ -89,26 +146,45 @@ class SourceFeaturesTest extends TestCase
     }
 
     /**
+     * A source whose access URL carries a query stamps an object on its
+     * entities rather than an address, and no data set is addressed by that.
+     */
+    public function testItPassesOverAFeatureWhoseSourceIsNotAnAddress(): void
+    {
+        $feature = $this->feature('a', self::MINE);
+        $feature['properties']['source']['value'] = ['url' => self::MINE, 'query' => ['tid' => 8]];
+
+        $this->assertSame([], $this->read([$feature]));
+    }
+
+    /**
      * @param list<array<string, mixed>> $features
      *
      * @return list<array<string, mixed>>
      */
     private function read(array $features): array
     {
-        $client = new MockHttpClient([
-            new MockResponse(
-                json_encode(['type' => 'FeatureCollection', 'features' => $features]),
-                ['response_headers' => [
-                    'content-type' => ['application/geo+json'],
-                    'ngsild-results-count' => [(string) \count($features)],
-                ]]
-            ),
-        ]);
-
-        $collection = new SourceFeatures(new BrokerReader($client, 10000))
-            ->forSource($this->source(self::MINE), self::TYPE);
+        $collection = new SourceFeatures(new BrokerReader(new MockHttpClient($this->response($features)), 10000))
+            ->forSource($this->source(self::MINE));
 
         return $collection['features'];
+    }
+
+    /**
+     * What the broker answers, given the source's context: a collection whose
+     * attributes carry the short names the context gives them.
+     *
+     * @param list<array<string, mixed>> $features
+     */
+    private function response(array $features): MockResponse
+    {
+        return new MockResponse(
+            json_encode(['type' => 'FeatureCollection', 'features' => $features]),
+            ['response_headers' => [
+                'content-type' => ['application/geo+json'],
+                'ngsild-results-count' => [(string) \count($features)],
+            ]]
+        );
     }
 
     /**
@@ -121,9 +197,9 @@ class SourceFeaturesTest extends TestCase
             'type' => 'Feature',
             'geometry' => ['type' => $geometry, 'coordinates' => [10.2, 56.1]],
             'properties' => [
-                'type' => self::TYPE,
-                'https://smartdatamodels.org/dataModel.Parking/totalSpotNumber' => ['type' => 'Property', 'value' => 6],
-                'https://smartdatamodels.org/source' => ['type' => 'Property', 'value' => $source],
+                'type' => 'OnStreetParking',
+                'totalSpotNumber' => ['type' => 'Property', 'value' => 6],
+                'source' => ['type' => 'Property', 'value' => $source],
                 'location' => ['type' => 'GeoProperty', 'value' => ['type' => 'Point', 'coordinates' => [10.2, 56.1]]],
             ],
         ];

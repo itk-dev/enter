@@ -64,6 +64,7 @@ final readonly class MapSpec
                 static fn (MapLayer $layer): array => [
                     'id' => $layer->id,
                     'title' => $layer->title,
+                    'model' => $layer->model,
                     'url' => $layer->url,
                     'colour' => $layer->colour,
                     'outline' => $layer->outline(),

@@ -18,9 +18,11 @@ final readonly class MapLayers
     /**
      * One colour per data set, in the order the sources come. Two sources
      * describing the same bays are only told apart by colour, so these need
-     * to stay clearly distinct rather than merely different.
+     * to stay clearly distinct rather than merely different, and there need
+     * to be enough of them: a colour that came round again would make two
+     * data sets look like one.
      */
-    private const array COLOURS = ['#e6194b', '#3e7bfa', '#2ca02c', '#ff7f0e', '#9467bd'];
+    private const array COLOURS = ['#e6194b', '#3e7bfa', '#2ca02c', '#ff7f0e', '#9467bd', '#8c564b', '#17becf', '#e377c2'];
 
     /**
      * Stands for every data set at once, when they are asked for together.
@@ -100,6 +102,7 @@ final readonly class MapLayers
             $layers[] = new MapLayer(
                 id: $id,
                 title: $source->definition->title,
+                model: $source->definition->model,
                 url: $dataUrl($id),
                 colour: self::COLOURS[$position % count(self::COLOURS)],
                 areas: self::drawsAreas($source),

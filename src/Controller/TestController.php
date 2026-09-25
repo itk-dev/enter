@@ -13,8 +13,6 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -32,19 +30,14 @@ final class TestController extends AbstractController
     private const string APPLICATION_GEOJSON = 'application/geo+json';
     private const string APPLICATION_JSON = 'application/json';
 
-    private const string TYPE_ON_STREET_PARKING = 'https://smartdatamodels.org/dataModel.Parking/OnStreetParking';
-
     /**
      * The developer map: what the test sources published, as the broker
-     * holds it.
+     * holds it, whichever models they publish into.
      */
     #[Route('', name: 'default', methods: [Request::METHOD_GET])]
     public function index(): Response
     {
-        return $this->render('test/index.html.twig', [
-            // The one model the map draws.
-            'type' => self::TYPE_ON_STREET_PARKING,
-        ]);
+        return $this->render('test/index.html.twig');
     }
 
     #[Route(
@@ -81,27 +74,24 @@ final class TestController extends AbstractController
      */
     #[Route('/spec', name: 'spec', methods: [Request::METHOD_GET])]
     public function spec(
-        #[MapQueryParameter('type')]
-        string $type,
         SourceManager $manager,
         MapSpec $mapSpec,
         UrlGeneratorInterface $urlGenerator,
     ): JsonResponse {
         return new JsonResponse($mapSpec->build(
-            $this->base($type),
+            $this->base(),
             $this->testSources($manager),
-            $this->dataUrl($urlGenerator, $type)
+            $this->dataUrl($urlGenerator)
         ));
     }
 
     /**
      * The features of one test source, as a layer of its own.
      *
-     * Every source publishes into the same model, so the map cannot ask the
-     * broker for one data set at a time: what separates them is an attribute
-     * the broker expanded against a default vocabulary and can no longer be
-     * queried on. Splitting them here is what lets each become a layer that
-     * carries its own colour and can be switched off.
+     * The broker holds entities by type, not by where they came from: two
+     * sources publishing into the one model are only told apart by the access
+     * URL each stamped on its entities. Splitting them here is what lets each
+     * become a layer that carries its own colour and can be switched off.
      */
     #[Route(
         path: '/map/{sourceId}.{_format}',
@@ -112,8 +102,6 @@ final class TestController extends AbstractController
     )]
     public function map(
         string $sourceId,
-        #[MapQueryParameter('type')]
-        string $type,
         SourceManager $manager,
         SourceFeatures $features,
     ): JsonResponse {
@@ -123,28 +111,22 @@ final class TestController extends AbstractController
         // only group what it holds, so counting across data sets means
         // serving them together.
         $collection = MapLayers::COMBINED_ID === $sourceId
-            ? $features->forSources($sources, $type)
+            ? $features->forSources($sources)
             : $features->forSource(
-                $sources[$sourceId] ?? throw new NotFoundHttpException(sprintf('No test source "%s".', $sourceId)),
-                $type
+                $sources[$sourceId] ?? throw new NotFoundHttpException(sprintf('No test source "%s".', $sourceId))
             );
 
         return new JsonResponse($collection, headers: ['content-type' => self::APPLICATION_GEOJSON]);
     }
 
     /**
-     * The map configuration read from file, for the one type there is.
+     * The map configuration read from file.
      *
      * @return array<string, mixed>
      */
-    private function base(string $type): array
+    private function base(): array
     {
-        $configName = match ($type) {
-            self::TYPE_ON_STREET_PARKING => 'Parking/OnStreetParking',
-            default => throw new BadRequestHttpException('Invalid type'),
-        };
-
-        return Yaml::parseFile(__DIR__.'/../../tests/resources/config/'.$configName.'.yaml');
+        return Yaml::parseFile(__DIR__.'/../../tests/resources/config/map.yaml');
     }
 
     /**
@@ -152,12 +134,11 @@ final class TestController extends AbstractController
      *
      * @return callable(string): string
      */
-    private function dataUrl(UrlGeneratorInterface $urlGenerator, string $type): callable
+    private function dataUrl(UrlGeneratorInterface $urlGenerator): callable
     {
         return static fn (string $id): string => $urlGenerator->generate('test_map', [
             'sourceId' => $id,
             '_format' => self::FORMAT_GEOJSON,
-            'type' => $type,
         ]);
     }
 

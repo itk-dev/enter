@@ -216,7 +216,7 @@ export function popupHtml(sections) {
 }
 
 /**
- * A toggle per data set.
+ * A toggle per data set, saying which model it publishes into.
  *
  * The grouped view is left out: it is how the data sets are drawn far out,
  * not a data set of its own to be switched.
@@ -226,11 +226,15 @@ export function buildToggles(element, layers, onToggle) {
     list.className = "test-map-toggle-list";
 
     for (const layer of layers) {
+        const model = document.createElement("span");
+        model.className = "test-map-toggle-model";
+        model.textContent = layer.model;
+
         const toggle = document.createElement("button");
         toggle.type = "button";
         toggle.className = "test-map-toggle test-map-toggle-active";
         toggle.setAttribute("aria-pressed", "true");
-        toggle.textContent = layer.title;
+        toggle.append(layer.title, model);
 
         toggle.addEventListener("click", () => {
             const on = toggle.getAttribute("aria-pressed") !== "true";
