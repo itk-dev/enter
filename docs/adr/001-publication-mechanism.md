@@ -24,7 +24,7 @@ We considered two options: an NGSI-LD context broker or a REST API.
 
 We will publish to a **NGSI-LD context broker, specifically Scorpio**.
 
-The system may need to store and transform a large volume of data, 
+The system may need to store and transform a large volume of data,
 so we need a well-documented solution that can handle that scale.
 
 We have extensive experience with regular REST APIs, but not a lot of experience
@@ -41,10 +41,10 @@ GeoJSON on request. Consumers get GeoJSON that is filtered, paginated and genera
 current data, across all data sets.
 
 Data conflation and progressive enrichment will be a large part of this project,
-and the broker architecture lends itself to that kind of work. 
+and the broker architecture lends itself to that kind of work.
 
 We choose Scorpio because it is already used in other projects and its feature
-coverage fits the project requirements well. 
+coverage fits the project requirements well.
 
 ## Consequences
 
