@@ -22,12 +22,17 @@ Which model a given data set uses is a decision for that data set, and has
 to be documented.
 
 Coverage is uneven, so some data sets will have no existing model to fit.
-When this happens, we will draft a new model contribution, add a temporary
-vocabulary document and submit it to the program.
+When this happens, we draft a new model on the Smart Data Models base
+structure: the common properties, GeoJSON location, postal address, units and
+timestamp conventions are reused as-is, and only the attributes specific to
+the data set are new. The draft is published with a temporary vocabulary
+document until it is accepted, and is submitted to the program as a
+contribution.
 
-Where a type has to come from somewhere other than Smart Data Models, only the
-type comes across. Geometry, addresses, units and timestamps follow the same
-conventions everywhere, so that a single query still reaches the whole estate.
+Where a type has to come from a vocabulary other than Smart Data Models, only
+the type comes across. Its geometry, addresses, units and timestamps still
+follow the Smart Data Models conventions, so that a single query still reaches
+the whole estate.
 
 ## Consequences
 
