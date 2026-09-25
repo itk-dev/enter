@@ -27,7 +27,6 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     model: 'PublicToilet',
     contextUrl: 'https://schema.org/docs/jsonldcontext.json',
     omittedFields: [
-        'status' => 'Lifecycle flag; constant "Aktiv" throughout the export.',
         'familie' => 'Category designation; constant "Toilet" throughout the export, redundant with the model every entity is published under.',
         'subfamilie' => 'Product designation; constant "TOI Cox" throughout the export.',
         'postnr_' => 'Administrative postal code; the address already identifies the location.',
@@ -36,10 +35,8 @@ use Symfony\Component\DependencyInjection\Attribute\When;
         'distrikt' => 'Internal municipal maintenance district, not a fact about the toilet.',
         'northing' => 'Stated in a different, unlabelled projection than the primary geometry and does not agree with it once reprojected; frequently absent.',
         'easting_westing' => 'Stated in a different, unlabelled projection than the primary geometry and does not agree with it once reprojected; frequently absent.',
-        'oprettet_af' => 'Directory username of the municipal employee who created the record.',
-        'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
-        'oprettet_dato' => 'Describes the register record.',
-        'rettet_dato' => 'Describes the register record.',
+        'oprettet_af' => 'Directory username of the municipal employee who created the record; personal data, and not a fact about the toilet.',
+        'rettet_af' => 'Directory username of the municipal employee who last edited the record; personal data, and not a fact about the toilet.',
         'mi_style' => 'MapInfo rendering style.',
     ],
     dataUrlBase: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=by_toiletter',
@@ -72,7 +69,14 @@ final class TestToiletCity extends AbstractSource
             ->setProperty('name', $this->name($row))
             ->setProperty('address', trim((string) ($row['adresse'] ?? '')))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
+            ->additionalInformation([
+                'status' => trim((string) ($row['status'] ?? '')),
+                // Not createdAt/modifiedAt: NGSI-LD reserves both, and a
+                // broker drops them without reporting it.
+                'registeredAt' => trim((string) ($row['oprettet_dato'] ?? '')),
+                'updatedAt' => trim((string) ($row['rettet_dato'] ?? '')),
+            ]);
     }
 
     /**

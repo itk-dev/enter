@@ -37,7 +37,6 @@ use App\Source\Definition;
     licence: null,
 
     omittedFields: [
-        'status' => 'Lifecycle flag; constant "Aktiv" throughout the export.',
         'familie' => 'Category designation; constant "Toilet" throughout the export, redundant with the model every entity is published under.',
         'subfamilie' => 'Product designation; constant "TOI Cox" throughout the export.',
         'postnr_' => 'Administrative postal code; the address already identifies the location.',
@@ -46,10 +45,8 @@ use App\Source\Definition;
         'distrikt' => 'Internal municipal maintenance district, not a fact about the toilet.',
         'northing' => 'Stated in a different, unlabelled projection than the primary geometry and does not agree with it once reprojected; frequently absent.',
         'easting_westing' => 'Stated in a different, unlabelled projection than the primary geometry and does not agree with it once reprojected; frequently absent.',
-        'oprettet_af' => 'Directory username of the municipal employee who created the record.',
-        'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
-        'oprettet_dato' => 'Describes the register record.',
-        'rettet_dato' => 'Describes the register record.',
+        'oprettet_af' => 'Directory username of the municipal employee who created the record; personal data, and not a fact about the toilet.',
+        'rettet_af' => 'Directory username of the municipal employee who last edited the record; personal data, and not a fact about the toilet.',
         'mi_style' => 'MapInfo rendering style.',
     ],
 )]
@@ -84,7 +81,19 @@ final class ToiletCity extends AbstractSource
             ->setProperty('name', $this->name($row))
             ->setProperty('address', trim((string) ($row['adresse'] ?? '')))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
+
+            // The lifecycle flag and the register's own timestamps have no
+            // counterpart on the model.
+            //
+            // The timestamps are not named createdAt and modifiedAt: NGSI-LD
+            // reserves both for the entity's own system timestamps, and a
+            // broker drops them from a payload without reporting it.
+            ->additionalInformation([
+                'status' => trim((string) ($row['status'] ?? '')),
+                'registeredAt' => trim((string) ($row['oprettet_dato'] ?? '')),
+                'updatedAt' => trim((string) ($row['rettet_dato'] ?? '')),
+            ]);
     }
 
     /**

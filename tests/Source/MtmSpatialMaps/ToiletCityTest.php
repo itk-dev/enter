@@ -69,11 +69,42 @@ class ToiletCityTest extends TestCase
         $this->assertSame('MultiPoint', $geometry['type']);
     }
 
-    public function testItPublishesNoDescriptionOrCategory(): void
+    public function testItPublishesNoDescription(): void
     {
         // This feed carries no accessibility/category signal at all.
         $this->assertArrayNotHasKey('description', $this->entities[0]);
-        $this->assertArrayNotHasKey('additionalInformation', $this->entities[0]);
+    }
+
+    public function testItCarriesStatusAndTheRegisterTimestampsAsAdditionalInformation(): void
+    {
+        $this->assertSame(
+            [
+                'status' => 'Aktiv',
+                'registeredAt' => '2018-10-01 13:12:00.333',
+                'updatedAt' => '2018-12-03 11:47:37.597',
+            ],
+            $this->entities[0]['additionalInformation']['value']
+        );
+    }
+
+    public function testItCarriesOnlyTheTimestampsARecordActuallyHas(): void
+    {
+        // The second record has never been edited.
+        $this->assertSame(
+            ['status' => 'Aktiv', 'registeredAt' => '2018-10-01 13:12:00.333'],
+            $this->entities[1]['additionalInformation']['value']
+        );
+    }
+
+    public function testItDoesNotPublishTheEmployeeUsernames(): void
+    {
+        // oprettet_af and rettet_af are personal data; the feed carries them
+        // on every record and nothing published may restate them.
+        $payload = json_encode($this->entities, \JSON_THROW_ON_ERROR);
+
+        $this->assertStringNotContainsString('az25000', $payload);
+        $this->assertStringNotContainsString('az01134', $payload);
+        $this->assertStringNotContainsString('spatial_reader', $payload);
     }
 
     /**
@@ -92,6 +123,10 @@ class ToiletCityTest extends TestCase
                     'navn' => ' ',
                     'adresse' => 'Banegårdspladsen 4A',
                     'placeringsinfo' => ' ',
+                    'oprettet_af' => 'az25000',
+                    'oprettet_dato' => '2018-10-01 13:12:00.333',
+                    'rettet_af' => 'ADM\\az01134',
+                    'rettet_dato' => '2018-12-03 11:47:37.597',
                     'mi_prinx' => 3,
                 ],
             ],
@@ -105,6 +140,10 @@ class ToiletCityTest extends TestCase
                     'navn' => ' ',
                     'adresse' => 'Skolebakken 6H',
                     'placeringsinfo' => 'v/Skolebakken v/Havnens P-Plads',
+                    'oprettet_af' => 'az25000',
+                    'oprettet_dato' => '2018-10-01 13:12:00.333',
+                    'rettet_af' => 'spatial_reader',
+                    // No rettet_dato — the record has never been edited.
                     'mi_prinx' => 5,
                 ],
             ],
