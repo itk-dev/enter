@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* [PR-50](https://github.com/itk-dev/enter/pull/50)
+  Consolidated the seven draft ADRs into three finalized ones, and added
+  a adr file for future planned ADRs.
 * [PR-28](https://github.com/itk-dev/enter/pull/28)
   Aligned the test setup with the new importer approach
 * [PR-24](https://github.com/itk-dev/enter/pull/24)
