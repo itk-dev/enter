@@ -11,29 +11,25 @@ use App\Source\DataType;
 use App\Source\Definition;
 
 /**
- * Wheelchair-accessible public toilets in Aarhus Municipality.
+ * Public toilets in Aarhus Municipality.
  */
 #[Definition(
     id: 'osm-public-toilet',
-    title: 'Handicapvenlige offentlige toiletter (OpenStreetMap), Aarhus Kommune',
-    description: 'Wheelchair-accessible public toilets mapped in OpenStreetMap within Aarhus Municipality.',
+    title: 'Offentlige toiletter (OpenStreetMap), Aarhus Kommune',
+    description: 'Public toilets mapped in OpenStreetMap within Aarhus Municipality, with the wheelchair access they state.',
     publisher: 'OpenStreetMap contributors',
     contact: 'https://community.openstreetmap.org/',
     landingPage: 'https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dtoilets',
 
     // The Overpass QL in the URL: within Aarhus Municipality (OSM
-    // relation 1784663), select every toilet tagged wheelchair-accessible,
-    // either directly or via the toilets:wheelchair refinement.
+    // relation 1784663), select every element tagged as a toilet.
     accessUrl: [
         'url' => 'https://overpass-api.de/api/interpreter',
         'query' => [
             'data' => <<<'DATA'
 [out:json][timeout:180];
 area(3601784663)->.a;
-(
- nwr["amenity"="toilets"]["wheelchair"="yes"](area.a);
- nwr["amenity"="toilets"]["toilets:wheelchair"="yes"](area.a);
-);
+nwr["amenity"="toilets"](area.a);
 out center tags;
 DATA,
         ],
@@ -48,8 +44,6 @@ DATA,
 
     omittedFields: [
         'amenity' => 'Selector; every record is published under the one model this source names.',
-        'wheelchair' => 'Access restriction the query itself filters on; every published entity satisfies it or its toilets:wheelchair refinement.',
-        'toilets:wheelchair' => 'Access restriction the query itself filters on; every published entity satisfies it or the plain wheelchair tag.',
     ],
 )]
 final class PublicToilet extends AbstractSource
@@ -86,7 +80,16 @@ final class PublicToilet extends AbstractSource
             ->setProperty('name', trim((string) ($tags['name'] ?? '')))
             ->setProperty('description', trim((string) ($tags['description'] ?? '')))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
+
+            // Wheelchair access is stated by two tags that the model has no
+            // attribute for: the general one describes the place, the
+            // refinement describes the toilet itself. Both are carried as the
+            // feed states them, and a record stating neither carries neither.
+            ->additionalInformation([
+                'wheelchair' => trim((string) ($tags['wheelchair'] ?? '')),
+                'toiletsWheelchair' => trim((string) ($tags['toilets:wheelchair'] ?? '')),
+            ]);
     }
 
     /**

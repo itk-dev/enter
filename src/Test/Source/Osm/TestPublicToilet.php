@@ -12,14 +12,14 @@ use App\Test\Source\TestDefinition;
 use Symfony\Component\DependencyInjection\Attribute\When;
 
 /**
- * Wheelchair-accessible public toilets in Aarhus Municipality.
+ * Public toilets in Aarhus Municipality.
  */
 #[When('dev')]
 #[When('test')]
 #[TestDefinition(
     // By convention the ID as a test source must start with `test:`
     id: 'test:osm-public-toilet',
-    title: 'Test: Handicapvenlige offentlige toiletter (OpenStreetMap), Aarhus Kommune',
+    title: 'Test: Offentlige toiletter (OpenStreetMap), Aarhus Kommune',
     accessUrl: 'http://nginx:8080/test/data/overpass-api.de/api/interpreter?osm-public-toilet',
     dataType: DataType::Overpass,
     mediaType: 'application/json',
@@ -28,18 +28,13 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     contextUrl: 'https://schema.org/docs/jsonldcontext.json',
     omittedFields: [
         'amenity' => 'Selector; every record is published under the one model this source names.',
-        'wheelchair' => 'Access restriction the query itself filters on; every published entity satisfies it or its toilets:wheelchair refinement.',
-        'toilets:wheelchair' => 'Access restriction the query itself filters on; every published entity satisfies it or the plain wheelchair tag.',
     ],
     dataUrlBase: 'https://overpass-api.de/api/interpreter',
     dataUrlQuery: [
         'data' => <<<'DATA'
 [out:json][timeout:180];
 area(3601784663)->.a;
-(
- nwr["amenity"="toilets"]["wheelchair"="yes"](area.a);
- nwr["amenity"="toilets"]["toilets:wheelchair"="yes"](area.a);
-);
+nwr["amenity"="toilets"](area.a);
 out center tags;
 DATA,
     ]
@@ -76,7 +71,11 @@ final class TestPublicToilet extends AbstractSource
             ->setProperty('name', trim((string) ($tags['name'] ?? '')))
             ->setProperty('description', trim((string) ($tags['description'] ?? '')))
             ->setProperty('source', $this->definition->accessUrl)
-            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry));
+            ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
+            ->additionalInformation([
+                'wheelchair' => trim((string) ($tags['wheelchair'] ?? '')),
+                'toiletsWheelchair' => trim((string) ($tags['toilets:wheelchair'] ?? '')),
+            ]);
     }
 
     /**

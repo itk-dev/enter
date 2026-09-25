@@ -35,7 +35,16 @@
       },
       "tags": {
         "amenity": "toilets",
-        "wheelchair": "yes"
+        "wheelchair": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 222333444,
+      "lat": 56.1534,
+      "lon": 10.2075,
+      "tags": {
+        "amenity": "toilets"
       }
     }
   ]

@@ -15,7 +15,8 @@ use PHPUnit\Framework\TestCase;
  * The field mapping here is provisional: overpass-api.de was unreachable
  * when this source was written, so these elements are constructed from the
  * Overpass QL's expected "out center tags" shape rather than a captured
- * live response.
+ * live response. Which tags a toilet actually carries in this area is
+ * therefore unverified.
  */
 class PublicToiletTest extends TestCase
 {
@@ -39,8 +40,8 @@ class PublicToiletTest extends TestCase
 
     public function testItSkipsRecordsWithoutAnIdentifierOrGeometry(): void
     {
-        // Four elements, of which one has no id.
-        $this->assertCount(3, $this->entities);
+        // Five elements, of which one has no id.
+        $this->assertCount(4, $this->entities);
     }
 
     public function testItAddressesEntitiesByOsmTypeAndId(): void
@@ -87,6 +88,33 @@ class PublicToiletTest extends TestCase
         $this->assertArrayNotHasKey('description', $this->entities[0]);
     }
 
+    public function testItCarriesWheelchairAccessAsAdditionalInformation(): void
+    {
+        $this->assertSame(
+            ['wheelchair' => 'yes'],
+            $this->entities[0]['additionalInformation']['value']
+        );
+        $this->assertSame(
+            ['toiletsWheelchair' => 'yes'],
+            $this->entities[1]['additionalInformation']['value']
+        );
+    }
+
+    public function testItCarriesWheelchairAccessTheFeedStatesAsAbsent(): void
+    {
+        // The query no longer filters on access, so "no" is a real answer
+        // rather than a record that would never have been selected.
+        $this->assertSame(
+            ['wheelchair' => 'no'],
+            $this->entities[2]['additionalInformation']['value']
+        );
+    }
+
+    public function testItOmitsAdditionalInformationWhenNeitherTagIsStated(): void
+    {
+        $this->assertArrayNotHasKey('additionalInformation', $this->entities[3]);
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -120,8 +148,17 @@ class PublicToiletTest extends TestCase
                 'center' => ['lat' => 56.1523, 'lon' => 10.2088],
                 'tags' => [
                     'amenity' => 'toilets',
-                    'wheelchair' => 'yes',
+                    'wheelchair' => 'no',
                 ],
+            ],
+            [
+                'type' => 'node',
+                'id' => 222333444,
+                'lat' => 56.1534,
+                'lon' => 10.2075,
+                // Tagged as a toilet and nothing more; the query no longer
+                // filters on wheelchair access, so such a record is included.
+                'tags' => ['amenity' => 'toilets'],
             ],
             [
                 'type' => 'node',
