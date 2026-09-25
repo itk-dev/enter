@@ -28,10 +28,8 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     contextUrl: 'https://schema.org/docs/jsonldcontext.json',
     omittedFields: [
         'bookbar' => 'Bookable flag; constant "Nej" throughout the export.',
-        'oprettet_af' => 'Directory username of the municipal employee who created the record.',
-        'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
-        'oprettet_dato' => 'Describes the register record.',
-        'rettet_dato' => 'Describes the register record.',
+        'oprettet_af' => 'Directory username of the municipal employee who created the record; personal data, and not a fact about the toilet.',
+        'rettet_af' => 'Directory username of the municipal employee who last edited the record; personal data, and not a fact about the toilet.',
         'mi_style' => 'MapInfo rendering style.',
     ],
     dataUrlBase: 'https://webkort.aarhuskommune.dk/spatialmap?page=get_geojson_opendata&datasource=andre_toiletter',
@@ -69,6 +67,10 @@ final class TestToiletOther extends AbstractSource
             ->additionalInformation([
                 'accessType' => trim((string) ($row['type'] ?? '')),
                 'season' => trim((string) ($row['saeson'] ?? '')),
+                // Not createdAt/modifiedAt: NGSI-LD reserves both, and a
+                // broker drops them without reporting it.
+                'registeredAt' => trim((string) ($row['oprettet_dato'] ?? '')),
+                'updatedAt' => trim((string) ($row['rettet_dato'] ?? '')),
             ]);
     }
 }

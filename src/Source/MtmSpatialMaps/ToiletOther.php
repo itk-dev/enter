@@ -39,10 +39,8 @@ use App\Source\Definition;
 
     omittedFields: [
         'bookbar' => 'Bookable flag; constant "Nej" throughout the export.',
-        'oprettet_af' => 'Directory username of the municipal employee who created the record.',
-        'rettet_af' => 'Directory username of the municipal employee who last edited the record.',
-        'oprettet_dato' => 'Describes the register record.',
-        'rettet_dato' => 'Describes the register record.',
+        'oprettet_af' => 'Directory username of the municipal employee who created the record; personal data, and not a fact about the toilet.',
+        'rettet_af' => 'Directory username of the municipal employee who last edited the record; personal data, and not a fact about the toilet.',
         'mi_style' => 'MapInfo rendering style.',
     ],
 )]
@@ -80,10 +78,17 @@ final class ToiletOther extends AbstractSource
             ->setProperty('source', $this->definition->accessUrl)
             ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
 
-            // Access scheme and season have no counterpart on the model.
+            // Access scheme, season and the register's own timestamps have no
+            // counterpart on the model.
+            //
+            // The timestamps are not named createdAt and modifiedAt: NGSI-LD
+            // reserves both for the entity's own system timestamps, and a
+            // broker drops them from a payload without reporting it.
             ->additionalInformation([
                 'accessType' => trim((string) ($row['type'] ?? '')),
                 'season' => trim((string) ($row['saeson'] ?? '')),
+                'registeredAt' => trim((string) ($row['oprettet_dato'] ?? '')),
+                'updatedAt' => trim((string) ($row['rettet_dato'] ?? '')),
             ]);
     }
 }
