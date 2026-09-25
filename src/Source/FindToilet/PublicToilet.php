@@ -39,17 +39,7 @@ use App\Source\Definition;
     licence: null,
 
     omittedFields: [
-        'manned' => 'Constant "0" throughout the export.',
-        'payment' => 'Constant "0" throughout the export.',
-        'kontakt' => 'The service\'s own generic contact address, not a fact about the toilet.',
-        'kontakttitle' => 'Duplicate of kontakt.',
         'region' => 'Constant for this municipality-scoped feed; the data set\'s own scope.',
-        // needle_container and changing_table are coded 0/1/2 with no
-        // documented meaning; values correlate loosely with a facility's
-        // overall completeness but do not do so consistently enough to
-        // publish a guessed interpretation.
-        'needle_container' => 'Coded 0/1/2 with no documented meaning.',
-        'changing_table' => 'Coded 0/1/2 with no documented meaning.',
     ],
 )]
 final class PublicToilet extends AbstractSource
@@ -86,17 +76,41 @@ final class PublicToilet extends AbstractSource
             ->setProperty('name', trim((string) ($data['title'] ?? '')))
             ->setProperty('address', trim((string) ($location['street'] ?? '')))
             ->setProperty('image', array_column(\is_array($data['images'] ?? null) ? $data['images'] : [], 'url'))
+            ->setProperty('isAccessibleForFree', $this->isAccessibleForFree($data))
             ->setProperty('source', $this->definition->accessUrl)
             ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
 
             // The site's own category, and facility facts the model has no
-            // attribute for.
+            // attribute for. needleContainer and changingTable carry the
+            // feed's codes verbatim: their 0/1/2 values are undocumented, so
+            // publishing them raw states what the feed says without adding an
+            // interpretation to it.
             ->additionalInformation([
                 'category' => trim((string) ($data['type'] ?? '')),
                 'placement' => $placement,
                 'openingHours' => $openingHours,
                 'tap' => trim((string) ($data['tap'] ?? '')),
+                'manned' => trim((string) ($data['manned'] ?? '')),
+                'needleContainer' => trim((string) ($data['needle_container'] ?? '')),
+                'changingTable' => trim((string) ($data['changing_table'] ?? '')),
+                'contact' => trim((string) ($data['kontakt'] ?? '')),
+                'contactTitle' => trim((string) ($data['kontakttitle'] ?? '')),
             ]);
+    }
+
+    /**
+     * The feed states a charge rather than its absence, so only its two known
+     * values map; anything else states nothing about charging.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function isAccessibleForFree(array $data): ?bool
+    {
+        return match ($data['payment'] ?? null) {
+            '0' => true,
+            '1' => false,
+            default => null,
+        };
     }
 
     /**

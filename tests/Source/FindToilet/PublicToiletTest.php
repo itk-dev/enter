@@ -34,8 +34,8 @@ class PublicToiletTest extends TestCase
 
     public function testItSkipsRecordsWithoutAnIdOrCoordinates(): void
     {
-        // Three records, one without a location.
-        $this->assertCount(2, $this->entities);
+        // Four records, one without a location.
+        $this->assertCount(3, $this->entities);
     }
 
     public function testItAddressesEntitiesById(): void
@@ -60,6 +60,34 @@ class PublicToiletTest extends TestCase
         $this->assertSame('Hele året', $additional['openingHours']);
         $this->assertSame('handicap', $additional['category']);
         $this->assertSame('1', $additional['tap']);
+    }
+
+    public function testItCarriesTheFacilityCodesTheModelCannotHold(): void
+    {
+        $additional = $this->entities[0]['additionalInformation']['value'];
+
+        // The feed's 0/1/2 codes are undocumented and carried verbatim.
+        $this->assertSame('2', $additional['needleContainer']);
+        $this->assertSame('2', $additional['changingTable']);
+        $this->assertSame('0', $additional['manned']);
+        $this->assertSame('findtoilet@findtoilet.dk', $additional['contact']);
+        $this->assertSame('findtoilet@findtoilet.dk', $additional['contactTitle']);
+    }
+
+    public function testItMapsAnAbsentChargeOntoFreeAccess(): void
+    {
+        $this->assertTrue($this->entities[0]['isAccessibleForFree']['value']);
+    }
+
+    public function testItMapsAStatedChargeOntoPaidAccess(): void
+    {
+        $this->assertFalse($this->entities[1]['isAccessibleForFree']['value']);
+    }
+
+    public function testItOmitsFreeAccessWhenTheFeedStatesNoCharge(): void
+    {
+        // The third record carries no payment field at all; nothing is stated.
+        $this->assertArrayNotHasKey('isAccessibleForFree', $this->entities[2]);
     }
 
     public function testItPublishesAPointGeometryFromLatAndLong(): void
@@ -110,6 +138,8 @@ class PublicToiletTest extends TestCase
                 'changing_table' => '2',
                 'type' => 'handicap',
                 'payment' => '0',
+                'kontakt' => 'findtoilet@findtoilet.dk',
+                'kontakttitle' => 'findtoilet@findtoilet.dk',
                 'images' => [
                     ['mime_type' => 'image/jpeg', 'url' => 'https://beta.findtoilet.dk/sites/default/files/images/5/2022/06/strandvejen19.jpg'],
                     ['mime_type' => 'image/jpeg', 'url' => 'https://beta.findtoilet.dk/sites/default/files/images/5/2022/06/strandvejen19-tangkrogen.jpg'],
@@ -127,7 +157,22 @@ class PublicToiletTest extends TestCase
                 ],
                 'type' => 'unisex',
                 'tap' => '0',
+                // Constructed: the live feed states no charge anywhere.
+                'payment' => '1',
                 'images' => [],
+            ],
+            [
+                'id' => '914',
+                'title' => 'Test uden betalingsfelt',
+                'description' => '',
+                'location' => [
+                    'street' => 'Testvej 2',
+                    'city' => 'Aarhus',
+                    'lat' => '56.16',
+                    'long' => '10.21',
+                ],
+                'type' => 'unisex',
+                // No payment field — nothing is stated about charging.
             ],
             [
                 'id' => '999',

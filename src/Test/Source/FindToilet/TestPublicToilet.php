@@ -27,13 +27,7 @@ use Symfony\Component\DependencyInjection\Attribute\When;
     model: 'PublicToilet',
     contextUrl: 'https://schema.org/docs/jsonldcontext.json',
     omittedFields: [
-        'manned' => 'Constant "0" throughout the export.',
-        'payment' => 'Constant "0" throughout the export.',
-        'kontakt' => 'The service\'s own generic contact address, not a fact about the toilet.',
-        'kontakttitle' => 'Duplicate of kontakt.',
         'region' => 'Constant for this municipality-scoped feed; the data set\'s own scope.',
-        'needle_container' => 'Coded 0/1/2 with no documented meaning.',
-        'changing_table' => 'Coded 0/1/2 with no documented meaning.',
     ],
     dataUrlBase: 'https://beta.findtoilet.dk/api/v3/toilets',
     dataUrlQuery: ['tid' => 8],
@@ -72,6 +66,7 @@ final class TestPublicToilet extends AbstractSource
             ->setProperty('name', trim((string) ($data['title'] ?? '')))
             ->setProperty('address', trim((string) ($location['street'] ?? '')))
             ->setProperty('image', array_column(\is_array($data['images'] ?? null) ? $data['images'] : [], 'url'))
+            ->setProperty('isAccessibleForFree', $this->isAccessibleForFree($data))
             ->setProperty('source', $this->definition->accessUrl)
             ->geoProperty('location', $transformer->transformGeometry($this->definition->crs, $geometry))
             ->additionalInformation([
@@ -79,7 +74,24 @@ final class TestPublicToilet extends AbstractSource
                 'placement' => $placement,
                 'openingHours' => $openingHours,
                 'tap' => trim((string) ($data['tap'] ?? '')),
+                'manned' => trim((string) ($data['manned'] ?? '')),
+                'needleContainer' => trim((string) ($data['needle_container'] ?? '')),
+                'changingTable' => trim((string) ($data['changing_table'] ?? '')),
+                'contact' => trim((string) ($data['kontakt'] ?? '')),
+                'contactTitle' => trim((string) ($data['kontakttitle'] ?? '')),
             ]);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function isAccessibleForFree(array $data): ?bool
+    {
+        return match ($data['payment'] ?? null) {
+            '0' => true,
+            '1' => false,
+            default => null,
+        };
     }
 
     /**
